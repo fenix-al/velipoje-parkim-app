@@ -1,0 +1,175 @@
+'use client'
+
+import { useEffect, useRef } from 'react'
+import { X, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import type { ParkingSpot, AppRole } from '@/lib/supabase/types'
+import { cn } from '@/lib/utils/cn'
+
+interface Props {
+  spot: ParkingSpot
+  userRole: AppRole
+  isOnline: boolean
+  isPending: boolean
+  onOccupy: (spot: ParkingSpot) => void
+  onRelease: (spot: ParkingSpot) => void
+  onOutOfService: (spot: ParkingSpot) => void
+  onRestore: (spot: ParkingSpot) => void
+  onClose: () => void
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  free:           'I lirë',
+  occupied:       'I zënë',
+  out_of_service: 'Jashtë shërbimit',
+}
+
+const STATUS_BADGE_VARIANT: Record<string, 'success' | 'destructive' | 'secondary'> = {
+  free:           'success',
+  occupied:       'destructive',
+  out_of_service: 'secondary',
+}
+
+export default function SpotBottomSheet({
+  spot,
+  userRole,
+  isOnline,
+  isPending,
+  onOccupy,
+  onRelease,
+  onOutOfService,
+  onRestore,
+  onClose,
+}: Props) {
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const canManageService = userRole === 'admin' || userRole === 'supervisor'
+
+  // Close on backdrop click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (sheetRef.current && !sheetRef.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [onClose])
+
+  // Close on Escape
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [onClose])
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/30 z-40"
+        aria-hidden="true"
+      />
+
+      {/* Sheet */}
+      <div
+        ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Vend parkimi ${spot.spot_code}`}
+        className="absolute bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl p-5 pb-safe animate-in slide-in-from-bottom duration-250"
+        style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <span className="text-xl font-bold text-gray-900">{spot.spot_code}</span>
+            <Badge variant={STATUS_BADGE_VARIANT[spot.current_status] ?? 'secondary'}>
+              {STATUS_LABELS[spot.current_status] ?? spot.current_status}
+            </Badge>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full p-1.5 hover:bg-gray-100 transition-colors"
+            aria-label="Mbyll"
+          >
+            <X className="h-5 w-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-col gap-2">
+          {spot.current_status === 'free' && (
+            <Button
+              onClick={() => onOccupy(spot)}
+              disabled={isPending || !isOnline}
+              className="w-full h-12 text-base bg-green-600 hover:bg-green-700 text-white"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Duke zënë…
+                </>
+              ) : (
+                'Zë vendin'
+              )}
+            </Button>
+          )}
+
+          {spot.current_status === 'occupied' && (
+            <Button
+              onClick={() => onRelease(spot)}
+              disabled={isPending || !isOnline}
+              className="w-full h-12 text-base bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Duke liruar…
+                </>
+              ) : (
+                'Liro vendin'
+              )}
+            </Button>
+          )}
+
+          {canManageService && spot.current_status !== 'out_of_service' && (
+            <Button
+              variant="outline"
+              onClick={() => onOutOfService(spot)}
+              disabled={isPending || !isOnline}
+              className="w-full h-10 text-sm text-gray-600"
+            >
+              Vendos jashtë shërbimit
+            </Button>
+          )}
+
+          {canManageService && spot.current_status === 'out_of_service' && (
+            <Button
+              onClick={() => onRestore(spot)}
+              disabled={isPending || !isOnline}
+              className="w-full h-12 text-base bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Duke rikthyer…
+                </>
+              ) : (
+                'Rikthe vendin'
+              )}
+            </Button>
+          )}
+        </div>
+
+        {!isOnline && (
+          <p className="text-xs text-amber-600 mt-3 text-center">
+            Veprimet janë të çaktivizuara: nuk ka lidhje interneti.
+          </p>
+        )}
+      </div>
+    </>
+  )
+}

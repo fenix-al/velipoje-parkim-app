@@ -1,0 +1,54 @@
+import { Metadata } from 'next'
+import { getProfile } from '@/lib/supabase/server'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+
+export const metadata: Metadata = {
+  title: 'Cilësimet — Admin Parkimi',
+}
+
+export default async function SettingsPage() {
+  const profile = await getProfile()
+
+  return (
+    <div className="space-y-5 max-w-xl">
+      <h1 className="text-xl font-bold text-gray-900">Cilësimet</h1>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Llogaria ime</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Emri</span>
+            <span className="font-medium">{profile?.full_name ?? '—'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Email</span>
+            <span className="font-medium">{profile?.email}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Roli</span>
+            <Badge>Administrator</Badge>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Sistemi</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Zona kohore</span>
+            <span>Europe/Tirane (UTC+2)</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Versioni</span>
+            <span>1.0.0</span>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
