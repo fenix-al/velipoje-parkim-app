@@ -1,18 +1,19 @@
 import { Metadata } from 'next'
 import { getAllProfiles } from '@/lib/db/queries'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { formatLocal } from '@/lib/utils/time'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import CreateUserForm from '@/components/admin/CreateUserForm'
 import UserActions from '@/components/admin/UserActions'
+import { formatLocal } from '@/lib/utils/time'
 
 export const metadata: Metadata = {
-  title: 'Përdoruesit — Admin Parkimi',
+  title: 'Përdoruesit - Admin Parkimi',
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  admin:      'Administrator',
+  admin: 'Administrator',
   supervisor: 'Supervisor',
-  employee:   'Punonjës',
+  employee: 'Punonjës',
 }
 
 export default async function UsersPage() {
@@ -21,6 +22,15 @@ export default async function UsersPage() {
   return (
     <div className="space-y-5">
       <h1 className="text-xl font-bold text-gray-900">Përdoruesit ({profiles.length})</h1>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Shto përdorues</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CreateUserForm />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-0">
@@ -37,25 +47,25 @@ export default async function UsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {profiles.map((p) => (
-                  <tr key={p.id} className="border-b last:border-b-0 hover:bg-gray-50">
-                    <td className="px-4 py-2.5 font-medium">{p.full_name ?? '—'}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{p.email}</td>
+                {profiles.map((profile) => (
+                  <tr key={profile.id} className="border-b last:border-b-0 hover:bg-gray-50">
+                    <td className="px-4 py-2.5 font-medium">{profile.full_name ?? '-'}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{profile.email}</td>
                     <td className="px-4 py-2.5">
-                      <Badge variant={p.role === 'admin' ? 'default' : 'secondary'}>
-                        {ROLE_LABELS[p.role] ?? p.role}
+                      <Badge variant={profile.role === 'admin' ? 'default' : 'secondary'}>
+                        {ROLE_LABELS[profile.role] ?? profile.role}
                       </Badge>
                     </td>
                     <td className="px-4 py-2.5">
-                      <Badge variant={p.is_active ? 'success' : 'destructive'}>
-                        {p.is_active ? 'Aktiv' : 'Joaktiv'}
+                      <Badge variant={profile.is_active ? 'success' : 'destructive'}>
+                        {profile.is_active ? 'Aktiv' : 'Joaktiv'}
                       </Badge>
                     </td>
-                    <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">
-                      {formatLocal(p.created_at, 'dd/MM/yyyy')}
+                    <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
+                      {formatLocal(profile.created_at, 'dd/MM/yyyy')}
                     </td>
                     <td className="px-4 py-2.5">
-                      <UserActions profile={p} />
+                      <UserActions profile={profile} />
                     </td>
                   </tr>
                 ))}

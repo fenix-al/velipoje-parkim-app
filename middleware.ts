@@ -41,6 +41,16 @@ export async function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from login
   if (user && pathname === '/login') {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, is_active')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.role === 'admin' && profile.is_active) {
+      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+    }
+
     return NextResponse.redirect(new URL('/zones', request.url))
   }
 

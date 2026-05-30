@@ -17,14 +17,20 @@ export interface Profile {
   updated_at: string
 }
 
+export type EntryPosition = 'top' | 'bottom' | 'none'
+
 export interface Zone {
   id: string
-  code: 'Z1' | 'Z2' | 'Z3' | 'Z4'
+  code: string
   name: string
   map_image_path: string
   map_width: number
   map_height: number
   is_active: boolean
+  latitude: number | null
+  longitude: number | null
+  address: string | null
+  entry_position: EntryPosition
   created_at: string
   updated_at: string
 }
@@ -33,11 +39,27 @@ export interface ParkingSpot {
   id: string
   zone_id: string
   spot_code: string
-  polygon: [number, number][] // [[x,y],[x,y],...]
+  polygon: [number, number][] | null // pixel coords for legacy map view; null for grid spots
+  row_id: string | null
+  position: number
   current_status: SpotStatus
   is_active: boolean
   created_at: string
   updated_at: string
+}
+
+export interface ZoneRow {
+  id: string
+  zone_id: string
+  position: number
+  label: string | null
+  created_at: string
+  updated_at: string
+}
+
+// A row together with its ordered spots (grid layout view).
+export interface ZoneRowWithSpots extends ZoneRow {
+  spots: ParkingSpot[]
 }
 
 export interface ParkingSession {
@@ -148,6 +170,11 @@ export interface Database {
         Row: ParkingSpot
         Insert: Omit<ParkingSpot, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<ParkingSpot, 'id' | 'created_at' | 'updated_at'>>
+      }
+      zone_rows: {
+        Row: ZoneRow
+        Insert: Omit<ZoneRow, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<ZoneRow, 'id' | 'created_at' | 'updated_at'>>
       }
       parking_sessions: {
         Row: ParkingSession

@@ -14,6 +14,22 @@ export async function signIn(formData: FormData) {
     return { error: 'Email ose fjalëkalim i gabuar.' }
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) redirect('/login')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, is_active')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role === 'admin' && profile.is_active) {
+    redirect('/admin/dashboard')
+  }
+
   redirect('/zones')
 }
 

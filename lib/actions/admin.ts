@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getProfile } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { AppRole } from '@/lib/supabase/types'
@@ -26,6 +27,69 @@ export async function updateUserRole(userId: string, role: AppRole) {
   return { success: true }
 }
 
+export async function createUserByAdmin(formData: FormData) {
+  await requireAdmin()
+
+  const email = String(formData.get('email') ?? '').trim().toLowerCase()
+  const password = String(formData.get('password') ?? '')
+  const fullName = String(formData.get('full_name') ?? '').trim()
+  const role = String(formData.get('role') ?? 'employee') as AppRole
+
+  if (!email) return { error: 'Email eshte i detyrueshem.' }
+  if (!password || password.length < 6) {
+    return { error: 'Password duhet te kete te pakten 6 karaktere.' }
+  }
+  if (!['admin', 'supervisor', 'employee'].includes(role)) {
+    return { error: 'Roli nuk eshte i vlefshem.' }
+  }
+
+  let adminClient: ReturnType<typeof createAdminClient>
+  try {
+    adminClient = createAdminClient()
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Konfigurimi i Supabase mungon.' }
+  }
+
+  const { data, error } = await adminClient.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: {
+      full_name: fullName || email.split('@')[0],
+      role,
+    },
+  })
+
+  if (error) return { error: error.message }
+  if (!data.user) return { error: 'User-i nuk u krijua.' }
+
+  const { error: passwordError } = await adminClient.auth.admin.updateUserById(data.user.id, {
+    password,
+    email_confirm: true,
+    user_metadata: {
+      full_name: fullName || email.split('@')[0],
+      role,
+    },
+  })
+
+  if (passwordError) return { error: passwordError.message }
+
+  const { error: profileError } = await adminClient
+    .from('profiles')
+    .upsert({
+      id: data.user.id,
+      email,
+      full_name: fullName || email.split('@')[0],
+      role,
+      is_active: true,
+    } as any)
+
+  if (profileError) return { error: profileError.message }
+
+  revalidatePath('/admin/users')
+  return { success: true }
+}
+
 export async function toggleUserActive(userId: string, isActive: boolean) {
   await requireAdmin()
   const supabase = await createClient()
@@ -39,57 +103,27 @@ export async function toggleUserActive(userId: string, isActive: boolean) {
   return { success: true }
 }
 
-export async function updateZone(
-  zoneId: string,
-  data: { name?: string; map_width?: number; map_height?: number; is_active?: boolean }
-) {
+export async function updateUserPasswordByAdmin(userId: string, password: string) {
   await requireAdmin()
-  const supabase = await createClient()
-  const { error } = await supabase
-    .from('zones')
-    .update(data as any)
-    .eq('id', zoneId)
 
-  if (error) return { error: error.message }
-  revalidatePath('/admin/zones')
-  return { success: true }
-}
-
-export async function upsertParkingSpot(spot: {
-  id?: string
-  zone_id: string
-  spot_code: string
-  polygon: [number, number][]
-}) {
-  await requireAdmin()
-  const supabase = await createClient()
-
-  if (spot.id) {
-    const { error } = await supabase
-      .from('parking_spots')
-      .update({ spot_code: spot.spot_code, polygon: spot.polygon } as any)
-      .eq('id', spot.id)
-    if (error) return { error: error.message }
-  } else {
-    const { error } = await supabase
-      .from('parking_spots')
-      .insert({ zone_id: spot.zone_id, spot_code: spot.spot_code, polygon: spot.polygon } as any)
-    if (error) return { error: error.message }
+  if (!password || password.length < 6) {
+    return { error: 'Password duhet te kete te pakten 6 karaktere.' }
   }
 
-  revalidatePath('/admin/map-editor')
-  return { success: true }
-}
+  let adminClient: ReturnType<typeof createAdminClient>
+  try {
+    adminClient = createAdminClient()
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Konfigurimi i Supabase mungon.' }
+  }
 
-export async function deleteParkingSpot(spotId: string) {
-  await requireAdmin()
-  const supabase = await createClient()
-  const { error } = await supabase
-    .from('parking_spots')
-    .update({ is_active: false } as any)
-    .eq('id', spotId)
+  const { error } = await adminClient.auth.admin.updateUserById(userId, {
+    password,
+    email_confirm: true,
+  })
 
   if (error) return { error: error.message }
-  revalidatePath('/admin/map-editor')
+
+  revalidatePath('/admin/users')
   return { success: true }
 }

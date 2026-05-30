@@ -1,5 +1,5 @@
 // Service Worker for Parkimi Velipojë PWA
-const CACHE_NAME = 'parkimi-v1'
+const CACHE_NAME = 'parkimi-v2'
 const MAP_CACHE_NAME = 'parkimi-maps-v1'
 
 // App shell assets to cache on install
@@ -78,11 +78,14 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
-        const cached = await cache.match(event.request)
-        if (cached) return cached
-        const response = await fetch(event.request)
-        if (response.ok) cache.put(event.request, response.clone())
-        return response
+        try {
+          const response = await fetch(event.request)
+          if (response.ok) cache.put(event.request, response.clone())
+          return response
+        } catch {
+          const cached = await cache.match(event.request)
+          return cached ?? new Response('', { status: 503 })
+        }
       })
     )
     return

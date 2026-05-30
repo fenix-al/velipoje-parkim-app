@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { MoreHorizontal, UserCheck, UserX, Shield } from 'lucide-react'
+import { useTransition } from 'react'
+import { KeyRound, MoreHorizontal, UserCheck, UserX, Shield } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
-import { updateUserRole, toggleUserActive } from '@/lib/actions/admin'
+import { updateUserRole, toggleUserActive, updateUserPasswordByAdmin } from '@/lib/actions/admin'
 import { toast } from 'sonner'
 import type { Profile } from '@/lib/supabase/types'
 
@@ -44,6 +44,20 @@ export default function UserActions({ profile }: Props) {
     })
   }
 
+  function handlePasswordReset() {
+    const password = window.prompt(`Password i ri per ${profile.email}`)
+    if (!password) return
+
+    startTransition(async () => {
+      const result = await updateUserPasswordByAdmin(profile.id, password)
+      if (result?.error) {
+        toast.error(result.error)
+      } else {
+        toast.success('Password u perditesua.')
+      }
+    })
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -62,6 +76,11 @@ export default function UserActions({ profile }: Props) {
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleRoleChange('employee')}>
           Punonjës
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handlePasswordReset}>
+          <KeyRound className="h-4 w-4 mr-2" />
+          Ndrysho password
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleToggleActive}>

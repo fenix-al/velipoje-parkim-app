@@ -1,12 +1,122 @@
-import { Car, ParkingSquare, Percent, AlertCircle } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+'use client'
+
+import Link from 'next/link'
+import { useMemo, useState } from 'react'
+import { AlertCircle, Car, Eye, LayoutGrid, ParkingSquare, Percent } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import type { OccupancyByZone } from '@/lib/supabase/types'
+import { cn } from '@/lib/utils/cn'
+import { formatDuration } from '@/lib/utils/time'
 
 interface Props {
   data: OccupancyByZone[]
+  totalMinutesByZone: Record<string, number>
+  view?: 'all' | 'summary' | 'zones'
 }
 
-export default function OccupancyCards({ data }: Props) {
+function ZoneCard({
+  zone,
+  totalMinutes,
+}: {
+  zone: OccupancyByZone
+  totalMinutes: number
+}) {
+  const pct = Number(zone.occupancy_percentage)
+  const occupancyColor = pct > 80 ? '#ef4444' : pct > 50 ? '#f59e0b' : '#22c55e'
+  const statusLabel = pct > 80 ? 'E ngarkuar' : pct > 50 ? 'Mesatare' : 'E lirë'
+
+  return (
+    <Card className="overflow-hidden transition-shadow hover:shadow-md">
+      <CardHeader className="border-b bg-gradient-to-br from-white to-slate-50 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="rounded-md bg-slate-900 px-2 py-1 text-xs font-bold text-white">
+                {zone.zone_code}
+              </span>
+              <span
+                className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                style={{
+                  color: occupancyColor,
+                  backgroundColor: `${occupancyColor}12`,
+                }}
+              >
+                {statusLabel}
+              </span>
+            </div>
+            <CardTitle className="truncate text-base leading-tight">{zone.zone_name}</CardTitle>
+          </div>
+          <div
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold"
+            style={{
+              color: occupancyColor,
+              background: `conic-gradient(${occupancyColor} ${pct * 3.6}deg, #eef2f7 0deg)`,
+            }}
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white">
+              {Math.round(pct)}%
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4 p-4">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-md border bg-red-50/60 p-3">
+            <p className="text-xs text-muted-foreground">Të zëna</p>
+            <p className="mt-1 text-xl font-bold text-red-600">{zone.occupied_count}</p>
+          </div>
+          <div className="rounded-md border bg-green-50/60 p-3">
+            <p className="text-xs text-muted-foreground">Të lira</p>
+            <p className="mt-1 text-xl font-bold text-green-600">{zone.free_count}</p>
+          </div>
+          <div className="rounded-md border bg-slate-50 p-3">
+            <p className="text-xs text-muted-foreground">Gjithsej</p>
+            <p className="mt-1 text-xl font-bold text-slate-900">{zone.total_spots}</p>
+          </div>
+          <div className="rounded-md border bg-blue-50/60 p-3">
+            <p className="text-xs text-muted-foreground">Orë totale</p>
+            <p className="mt-1 text-base font-bold text-blue-700">{formatDuration(totalMinutes)}</p>
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-1.5 flex justify-between text-xs text-muted-foreground">
+            <span>Zënia</span>
+            <span>{pct}%</span>
+          </div>
+          <div className="h-2.5 overflow-hidden rounded-full bg-gray-100">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${pct}%`,
+                backgroundColor: occupancyColor,
+              }}
+            />
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter className="grid grid-cols-2 gap-2 border-t bg-slate-50/70 p-3">
+        <Button asChild variant="outline" size="sm" className="h-9 px-2 text-xs sm:text-sm">
+          <Link href={`/zones/${zone.zone_code}`}>
+            <Eye className="h-4 w-4" />
+            Shiko
+          </Link>
+        </Button>
+        <Button asChild size="sm" className="h-9 px-2 text-xs sm:text-sm">
+          <Link href={`/admin/zones/${zone.zone_id}/layout`}>
+            <LayoutGrid className="h-4 w-4" />
+            Ndrysho layout
+          </Link>
+        </Button>
+      </CardFooter>
+    </Card>
+  )
+}
+
+export default function OccupancyCards({ data, totalMinutesByZone, view = 'all' }: Props) {
+  const [selectedZoneId, setSelectedZoneId] = useState(data[0]?.zone_id ?? '')
+
   const totals = data.reduce(
     (acc, z) => ({
       total:    acc.total    + z.total_spots,
@@ -14,7 +124,12 @@ export default function OccupancyCards({ data }: Props) {
       free:     acc.free     + z.free_count,
       oos:      acc.oos      + z.out_of_service_count,
     }),
-    { total: 0, occupied: 0, free: 0, oos: 0 }
+    { total: 0, occupied: 0, free: 0, oos: 0 },
+  )
+
+  const selectedZone = useMemo(
+    () => data.find((zone) => zone.zone_id === selectedZoneId) ?? data[0],
+    [data, selectedZoneId],
   )
 
   const activeSpotsTotal = totals.total - totals.oos
@@ -24,100 +139,105 @@ export default function OccupancyCards({ data }: Props) {
 
   const summaryCards = [
     {
-      title:   'Të zëna',
-      value:   totals.occupied,
-      icon:    Car,
-      color:   'text-red-600',
-      bg:      'bg-red-50',
+      title: 'Të zëna',
+      value: totals.occupied,
+      icon: Car,
+      color: 'text-red-600',
+      bg: 'bg-red-50',
     },
     {
-      title:   'Të lira',
-      value:   totals.free,
-      icon:    ParkingSquare,
-      color:   'text-green-600',
-      bg:      'bg-green-50',
+      title: 'Të lira',
+      value: totals.free,
+      icon: ParkingSquare,
+      color: 'text-green-600',
+      bg: 'bg-green-50',
     },
     {
-      title:   'Zënia %',
-      value:   `${overallPct}%`,
-      icon:    Percent,
-      color:   'text-blue-600',
-      bg:      'bg-blue-50',
+      title: 'Zënia %',
+      value: `${overallPct}%`,
+      icon: Percent,
+      color: 'text-blue-600',
+      bg: 'bg-blue-50',
     },
     {
-      title:   'Jashtë shërbimit',
-      value:   totals.oos,
-      icon:    AlertCircle,
-      color:   'text-gray-600',
-      bg:      'bg-gray-50',
+      title: 'Jashtë shërbimit',
+      value: totals.oos,
+      icon: AlertCircle,
+      color: 'text-gray-600',
+      bg: 'bg-gray-50',
     },
   ]
 
+  const showSummary = view === 'all' || view === 'summary'
+  const showZones = view === 'all' || view === 'zones'
+
   return (
     <div className="space-y-4">
-      {/* Summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {showSummary && (
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
         {summaryCards.map(({ title, value, icon: Icon, color, bg }) => (
-          <Card key={title}>
-            <CardContent className="p-4">
+          <Card key={title} className="overflow-hidden transition-shadow hover:shadow-md">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">{title}</p>
-                  <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-medium text-muted-foreground sm:text-sm">
+                    {title}
+                  </p>
+                  <p className={`mt-1 text-xl font-bold leading-none sm:text-2xl ${color}`}>
+                    {value}
+                  </p>
                 </div>
-                <div className={`rounded-full p-2 ${bg}`}>
-                  <Icon className={`h-5 w-5 ${color}`} />
+                <div className={`rounded-full p-2 sm:p-2.5 ${bg}`}>
+                  <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${color}`} />
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+      )}
 
-      {/* Per-zone breakdown */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {data.map((zone) => {
-          const pct = Number(zone.occupancy_percentage)
-          return (
-            <Card key={zone.zone_id}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">{zone.zone_name}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Të zëna</span>
-                  <span className="font-semibold text-red-600">{zone.occupied_count}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Të lira</span>
-                  <span className="font-semibold text-green-600">{zone.free_count}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Gjithsej</span>
-                  <span className="font-semibold">{zone.total_spots}</span>
-                </div>
+      {showZones && data.length > 0 && (
+        <div className="space-y-3 md:hidden">
+          <div className="-mx-3 overflow-x-auto px-3">
+            <div className="flex min-w-max gap-2">
+              {data.map((zone) => (
+                <button
+                  key={zone.zone_id}
+                  type="button"
+                  onClick={() => setSelectedZoneId(zone.zone_id)}
+                  className={cn(
+                    'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                    selectedZone?.zone_id === zone.zone_id
+                      ? 'border-blue-600 bg-blue-600 text-white'
+                      : 'border-gray-200 bg-white text-gray-600',
+                  )}
+                >
+                  {zone.zone_code}
+                </button>
+              ))}
+            </div>
+          </div>
+          {selectedZone && (
+            <ZoneCard
+              zone={selectedZone}
+              totalMinutes={totalMinutesByZone[selectedZone.zone_code] ?? 0}
+            />
+          )}
+        </div>
+      )}
 
-                {/* Progress bar */}
-                <div className="pt-1">
-                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>Zënia</span>
-                    <span>{pct}%</span>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${pct}%`,
-                        backgroundColor: pct > 80 ? '#ef4444' : pct > 50 ? '#f59e0b' : '#22c55e',
-                      }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
+      {showZones && (
+      <div className="hidden grid-cols-1 gap-3 md:grid md:grid-cols-2 xl:grid-cols-4">
+        {data.map((zone) => (
+          <ZoneCard
+            key={zone.zone_id}
+            zone={zone}
+            totalMinutes={totalMinutesByZone[zone.zone_code] ?? 0}
+          />
+        ))}
       </div>
+      )}
     </div>
   )
 }
