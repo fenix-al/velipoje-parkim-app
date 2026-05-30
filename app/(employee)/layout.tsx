@@ -17,7 +17,7 @@ export default async function EmployeeLayout({
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
       <EmployeeNav profile={profile} zones={zones} />
-      <main className="min-h-0 flex-1 pb-24 md:pb-0">
+      <main className="min-h-0 flex-1 pb-32 md:pb-0">
         {children}
       </main>
     </div>
