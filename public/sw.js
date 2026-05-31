@@ -1,110 +1,106 @@
-// Service Worker for Parkimi Velipojë PWA
-const CACHE_NAME = 'parkimi-v2'
-const MAP_CACHE_NAME = 'parkimi-maps-v1'
+const APP_CACHE = 'parkimi-app-v3'
+const RUNTIME_CACHE = 'parkimi-runtime-v3'
 
-// App shell assets to cache on install
-const APP_SHELL = [
+const PRECACHE_URLS = [
   '/',
-  '/zones',
   '/login',
+  '/zones',
+  '/offline.html',
   '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/apple-touch-icon.png',
+  '/icons/car.png',
 ]
 
-// Map images to cache
-const MAP_IMAGES = [
-  '/maps/zona-1.jpg',
-  '/maps/zona-2.jpg',
-  '/maps/zona-3.jpg',
-  '/maps/zona-4.jpg',
-]
+function isSameOrigin(url) {
+  return url.origin === self.location.origin
+}
 
-// Install: cache app shell and map images
+async function cacheFirst(request) {
+  const cached = await caches.match(request)
+  if (cached) return cached
+
+  const response = await fetch(request)
+  if (response.ok) {
+    const cache = await caches.open(RUNTIME_CACHE)
+    await cache.put(request, response.clone())
+  }
+  return response
+}
+
+async function networkFirst(request, fallbackUrl = '/offline.html') {
+  try {
+    const response = await fetch(request)
+    if (response.ok) {
+      const cache = await caches.open(RUNTIME_CACHE)
+      await cache.put(request, response.clone())
+    }
+    return response
+  } catch {
+    const cached = await caches.match(request)
+    if (cached) return cached
+
+    const fallback = await caches.match(fallbackUrl)
+    if (fallback) return fallback
+
+    return new Response('Offline', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    })
+  }
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    Promise.all([
-      caches.open(CACHE_NAME).then((cache) =>
-        cache.addAll(APP_SHELL).catch(() => {/* Non-fatal */})
-      ),
-      caches.open(MAP_CACHE_NAME).then((cache) =>
-        cache.addAll(MAP_IMAGES).catch(() => {/* Non-fatal */})
-      ),
-    ]).then(() => self.skipWaiting())
+    caches
+      .open(APP_CACHE)
+      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .catch(() => undefined)
+      .then(() => self.skipWaiting()),
   )
 })
 
-// Activate: clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((k) => k !== CACHE_NAME && k !== MAP_CACHE_NAME)
-          .map((k) => caches.delete(k))
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== APP_CACHE && key !== RUNTIME_CACHE)
+            .map((key) => caches.delete(key)),
+        ),
       )
-    ).then(() => self.clients.claim())
+      .then(() => self.clients.claim()),
   )
 })
 
-// Fetch: network-first for API, cache-first for assets
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url)
+  const { request } = event
+  if (request.method !== 'GET') return
 
-  // Skip non-GET and cross-origin requests
-  if (event.request.method !== 'GET') return
-  if (url.origin !== self.location.origin) return
+  const url = new URL(request.url)
+  if (!isSameOrigin(url)) return
 
-  // Supabase API calls — always network only (no offline mutations)
-  if (url.pathname.startsWith('/rest/') || url.pathname.startsWith('/auth/')) return
-
-  // Map images — cache first, then network
-  if (url.pathname.startsWith('/maps/')) {
-    event.respondWith(
-      caches.open(MAP_CACHE_NAME).then(async (cache) => {
-        const cached = await cache.match(event.request)
-        if (cached) return cached
-        try {
-          const response = await fetch(event.request)
-          if (response.ok) cache.put(event.request, response.clone())
-          return response
-        } catch {
-          return new Response('', { status: 503 })
-        }
-      })
-    )
-    return
-  }
-
-  // Static assets (_next/static) — cache first
   if (url.pathname.startsWith('/_next/static/')) {
-    event.respondWith(
-      caches.open(CACHE_NAME).then(async (cache) => {
-        try {
-          const response = await fetch(event.request)
-          if (response.ok) cache.put(event.request, response.clone())
-          return response
-        } catch {
-          const cached = await cache.match(event.request)
-          return cached ?? new Response('', { status: 503 })
-        }
-      })
-    )
+    event.respondWith(cacheFirst(request))
     return
   }
 
-  // All other requests — network first, fall back to cache
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        if (response.ok) {
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, response.clone())
-          })
-        }
-        return response
-      })
-      .catch(async () => {
-        const cached = await caches.match(event.request)
-        return cached ?? new Response('Offline', { status: 503 })
-      })
-  )
+  if (
+    url.pathname.startsWith('/icons/') ||
+    url.pathname.startsWith('/maps/') ||
+    url.pathname === '/manifest.json'
+  ) {
+    event.respondWith(cacheFirst(request))
+    return
+  }
+
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirst(request))
+    return
+  }
+
+  event.respondWith(networkFirst(request))
 })

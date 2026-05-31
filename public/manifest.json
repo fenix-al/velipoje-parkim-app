@@ -2,7 +2,9 @@
   "name": "Parkimi Velipojë",
   "short_name": "Parkimi",
   "description": "Sistemi i menaxhimit të parkimit për Bashkinë Velipojë",
+  "id": "/zones",
   "start_url": "/zones",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1d4ed8",
@@ -24,13 +26,13 @@
   ],
   "shortcuts": [
     {
-      "name": "Zona 1",
-      "url": "/zones/Z1",
+      "name": "Zonat",
+      "url": "/zones",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Zona 2",
-      "url": "/zones/Z2",
+      "name": "Historiku",
+      "url": "/history",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ],
