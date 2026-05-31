@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import { Toaster } from 'sonner'
 import ServiceWorkerRegister from './sw-register'
@@ -42,6 +44,8 @@ export default function RootLayout({
         {children}
         <Toaster position="top-center" richColors />
         <ServiceWorkerRegister />
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
