@@ -41,9 +41,11 @@ import ZoneFormDialog from './ZoneFormDialog'
 
 interface Props {
   zones: Zone[]
+  /** Supervisor sheh zonat por s'i krijon/ndryshon dot. */
+  canManage?: boolean
 }
 
-export default function ZonesManager({ zones }: Props) {
+export default function ZonesManager({ zones, canManage = true }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showCreate, setShowCreate] = useState(false)
@@ -84,12 +86,18 @@ export default function ZonesManager({ zones }: Props) {
     <div className="space-y-5">
       <PageHeader
         title={`Zonat e parkimit (${zones.length})`}
-        description="Krijo, ndrysho dhe menaxho layout-in e zonave."
+        description={
+          canManage
+            ? 'Krijo, ndrysho dhe menaxho vendet e zonave.'
+            : 'Pamje e zonave dhe gjendjes së tyre.'
+        }
       >
-        <Button onClick={() => setShowCreate(true)} size="sm">
-          <Plus className="h-4 w-4 mr-1.5" />
-          Shto zonë
-        </Button>
+        {canManage && (
+          <Button onClick={() => setShowCreate(true)} size="sm">
+            <Plus className="h-4 w-4 mr-1.5" />
+            Shto zonë
+          </Button>
+        )}
       </PageHeader>
 
       <div className="grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1 md:hidden">
@@ -121,10 +129,12 @@ export default function ZonesManager({ zones }: Props) {
           title="Nuk ka zona ende"
           description="Krijo zonën e parë të parkimit për të filluar menaxhimin e vendeve."
         >
-          <Button variant="outline" size="sm" onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            Shto zonën e parë
-          </Button>
+          {canManage && (
+            <Button variant="outline" size="sm" onClick={() => setShowCreate(true)}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              Shto zonën e parë
+            </Button>
+          )}
         </EmptyState>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -145,40 +155,42 @@ export default function ZonesManager({ zones }: Props) {
                     <Badge variant={zone.is_active ? 'success' : 'secondary'}>
                       {zone.is_active ? 'Aktive' : 'Joaktive'}
                     </Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" disabled={isPending}>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44">
-                        <DropdownMenuItem onClick={() => setEditZone(zone)}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Ndrysho
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleToggle(zone)}>
-                          {zone.is_active ? (
-                            <>
-                              <ToggleLeft className="h-4 w-4 mr-2" />
-                              Çaktivizo
-                            </>
-                          ) : (
-                            <>
-                              <ToggleRight className="h-4 w-4 mr-2" />
-                              Aktivizo
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => setDeleteTarget(zone)}
-                          className="text-red-600 focus:text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Fshi zonën
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {canManage && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" disabled={isPending}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuItem onClick={() => setEditZone(zone)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Ndrysho
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleToggle(zone)}>
+                            {zone.is_active ? (
+                              <>
+                                <ToggleLeft className="h-4 w-4 mr-2" />
+                                Çaktivizo
+                              </>
+                            ) : (
+                              <>
+                                <ToggleRight className="h-4 w-4 mr-2" />
+                                Aktivizo
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setDeleteTarget(zone)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Fshi zonën
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -196,26 +208,28 @@ export default function ZonesManager({ zones }: Props) {
                     </span>
                   </div>
                 )}
-                <div className="mt-2 grid grid-cols-2 gap-2">
+                <div className={cn('mt-2 grid gap-2', canManage ? 'grid-cols-2' : 'grid-cols-1')}>
                   <Button
                     variant="secondary"
                     size="sm"
                     className="w-full"
                     disabled={!zone.is_active}
-                    onClick={() => router.push(`/zones/${zone.code}`)}
+                    onClick={() => router.push(`/admin/zones/${zone.id}/view`)}
                   >
                     <Eye className="h-4 w-4 mr-1.5" />
                     Shiko
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => router.push(`/admin/zones/${zone.id}/layout`)}
-                  >
-                    <LayoutGrid className="h-4 w-4 mr-1.5" />
-                    Layout
-                  </Button>
+                  {canManage && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => router.push(`/admin/zones/${zone.id}/layout`)}
+                    >
+                      <LayoutGrid className="h-4 w-4 mr-1.5" />
+                      Vendet
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

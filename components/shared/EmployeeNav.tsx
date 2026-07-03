@@ -38,9 +38,13 @@ const ADMIN_MOBILE_NAV = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/reports', label: 'Raporte', icon: FileText },
   { href: '/admin/history', label: 'Historiku', icon: History },
-  { href: '/zones', label: 'Zonat', icon: Map },
+  { href: '/admin/zones', label: 'Zonat', icon: Map },
   { href: '/admin/users', label: 'Përdoruesit', icon: Users },
 ]
+
+const SUPERVISOR_MOBILE_NAV = ADMIN_MOBILE_NAV.filter(
+  (item) => item.href !== '/admin/users',
+)
 
 const EMPLOYEE_MOBILE_NAV = [
   { href: '/zones', label: 'Zonat', icon: Map },
@@ -85,7 +89,12 @@ export default function EmployeeNav({ profile, zones }: Props) {
   )
 
   const displayName = profile.full_name ?? profile.email
-  const mobileNav = profile.role === 'admin' ? ADMIN_MOBILE_NAV : EMPLOYEE_MOBILE_NAV
+  const mobileNav =
+    profile.role === 'admin'
+      ? ADMIN_MOBILE_NAV
+      : profile.role === 'supervisor'
+        ? SUPERVISOR_MOBILE_NAV
+        : EMPLOYEE_MOBILE_NAV
 
   return (
     <>

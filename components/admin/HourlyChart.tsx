@@ -45,7 +45,7 @@ export default function HourlyChart({ arrivals, departures }: Props) {
   const data = mergeHours(arrivals, departures)
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle className="text-base">Aktiviteti sipas orës</CardTitle>
       </CardHeader>

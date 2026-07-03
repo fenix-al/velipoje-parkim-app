@@ -30,7 +30,7 @@ export default async function SettingsPage() {
           </div>
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Roli</span>
-            <Badge>Administrator</Badge>
+            <Badge>{profile?.role === 'supervisor' ? 'Supervisor' : 'Administrator'}</Badge>
           </div>
         </CardContent>
       </Card>

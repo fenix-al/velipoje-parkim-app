@@ -9,13 +9,14 @@ import {
   getDashboardInsights,
   getRecentEvents,
 } from '@/lib/db/queries'
-import OccupancyCards from '@/components/admin/OccupancyCards'
 import PageHeader from '@/components/shared/PageHeader'
-import ActivityTable from '@/components/admin/ActivityTable'
+import { getProfile } from '@/lib/supabase/server'
 import DashboardFilters from '@/components/admin/DashboardFilters'
 import CSVExportButton from '@/components/admin/CSVExportButton'
 import DashboardCharts from '@/components/admin/DashboardCharts'
 import DashboardInsightCards from '@/components/admin/DashboardInsightCards'
+import RecentActivityFeed from '@/components/admin/RecentActivityFeed'
+import ZoneStatusTable from '@/components/admin/ZoneStatusTable'
 import { startOfDayTirane } from '@/lib/utils/time'
 
 export const metadata: Metadata = {
@@ -29,8 +30,6 @@ interface Props {
     from?: string
     to?: string
     zone?: string
-    event?: string
-    activityPage?: string
   }>
 }
 
@@ -53,14 +52,12 @@ export default async function DashboardPage({ searchParams }: Props) {
   const params    = await searchParams
   const zoneCode  = params.zone ?? ''
   const selectedZoneCode = zoneCode || undefined
-  const activityPage = Math.max(1, Number(params.activityPage ?? 1) || 1)
-  const activityPageSize = 20
-  const eventType = params.event ?? ''
   const todayStart = startOfDayTirane()
   const from = params.from ? new Date(params.from).toISOString() : todayStart
   const to   = params.to   ? new Date(params.to + 'T23:59:59').toISOString() : new Date().toISOString()
 
   const [
+    profile,
     occupancy,
     arrivals,
     departures,
@@ -69,6 +66,7 @@ export default async function DashboardPage({ searchParams }: Props) {
     insights,
     activity,
   ] = await Promise.all([
+    getProfile(),
     getCurrentOccupancy(),
     getHourlyArrivals(from, to, selectedZoneCode),
     getHourlyDepartures(from, to, selectedZoneCode),
@@ -79,24 +77,23 @@ export default async function DashboardPage({ searchParams }: Props) {
       from,
       to,
       zoneCode: selectedZoneCode,
-      eventType: eventType || undefined,
-      limit: activityPageSize,
-      offset: (activityPage - 1) * activityPageSize,
+      limit: 8,
+      offset: 0,
     }),
   ])
   const filteredOccupancy = selectedZoneCode
     ? occupancy.filter((zone) => zone.zone_code === selectedZoneCode)
     : occupancy
-  const filteredAvgDuration = selectedZoneCode
-    ? avgDuration.filter((zone) => zone.zone_code === selectedZoneCode)
-    : avgDuration
+  const avgMinutesByZone = Object.fromEntries(
+    avgDuration.map((z) => [z.zone_code, z.avg_minutes]),
+  )
   const periodLabel = getPeriodLabel(params.from, params.to)
 
   return (
     <div className="space-y-5 md:space-y-6">
       <PageHeader
         title="Dashboard"
-        description="Pamje e shpejtë për zonat dhe aktivitetin."
+        description="Përmbledhje e përgjithshme e parkimit në kohë reale."
       >
         <CSVExportButton
           from={params.from}
@@ -109,54 +106,26 @@ export default async function DashboardPage({ searchParams }: Props) {
         <DashboardFilters />
       </Suspense>
 
-      <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Statistika
-        </h2>
-        <div className="space-y-4">
-          <DashboardInsightCards
-            insights={insights}
-            occupancy={filteredOccupancy}
-            arrivals={arrivals}
-            departures={departures}
-            periodLabel={periodLabel}
-          />
-        <OccupancyCards
-          data={filteredOccupancy}
-          totalMinutesByZone={totalMinutesByZone}
-          view="summary"
-        />
-        </div>
-      </section>
+      <DashboardInsightCards
+        insights={insights}
+        occupancy={filteredOccupancy}
+        periodLabel={periodLabel}
+      />
 
-      <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Zonat
-        </h2>
-        <OccupancyCards
-          data={filteredOccupancy}
-          totalMinutesByZone={totalMinutesByZone}
-          view="zones"
-        />
-      </section>
+      <DashboardCharts
+        arrivals={arrivals}
+        departures={departures}
+        occupancy={filteredOccupancy}
+      >
+        <RecentActivityFeed events={activity.events} />
+      </DashboardCharts>
 
-      <section>
-        <DashboardCharts
-          arrivals={arrivals}
-          departures={departures}
-          avgDuration={filteredAvgDuration}
-        />
-      </section>
-
-      <section>
-        <ActivityTable
-          events={activity.events}
-          total={activity.total}
-          page={activityPage}
-          pageSize={activityPageSize}
-          eventType={eventType}
-        />
-      </section>
+      <ZoneStatusTable
+        occupancy={filteredOccupancy}
+        avgMinutesByZone={avgMinutesByZone}
+        totalMinutesByZone={totalMinutesByZone}
+        canEditLayout={profile?.role === 'admin'}
+      />
     </div>
   )
 }

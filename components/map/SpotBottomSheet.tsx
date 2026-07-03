@@ -4,8 +4,9 @@ import { useEffect, useRef } from 'react'
 import { Loader2, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import LiveDuration from '@/components/shared/LiveDuration'
 import type { ActiveSession, AppRole, ParkingSpot } from '@/lib/supabase/types'
-import { formatDuration, formatLocal } from '@/lib/utils/time'
+import { formatLocal } from '@/lib/utils/time'
 
 interface Props {
   spot: ParkingSpot
@@ -67,14 +68,14 @@ export default function SpotBottomSheet({
 
   return (
     <>
-      <div className="absolute inset-0 z-40 bg-black/30" aria-hidden="true" />
+      <div className="fixed inset-0 z-40 bg-black/30" aria-hidden="true" />
 
       <div
         ref={sheetRef}
         role="dialog"
         aria-modal="true"
         aria-label={`Vend parkimi ${spot.spot_code}`}
-        className="absolute bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-white p-5 shadow-2xl animate-in slide-in-from-bottom duration-250 md:bottom-auto md:left-1/2 md:right-auto md:top-1/2 md:w-full md:max-w-md md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl"
+        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-white p-5 shadow-2xl animate-in slide-in-from-bottom duration-250"
         style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -109,8 +110,8 @@ export default function SpotBottomSheet({
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">Qëndrim aktual</span>
-              <span className="font-semibold text-gray-900">
-                {activeSession ? formatDuration(activeSession.minutes_so_far) : '-'}
+              <span className="font-semibold text-red-600">
+                {activeSession ? <LiveDuration since={activeSession.occupied_at} /> : '-'}
               </span>
             </div>
           </div>

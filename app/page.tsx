@@ -5,6 +5,8 @@ export default async function RootPage() {
   const profile = await getProfile()
 
   if (!profile) redirect('/login')
-  if (profile.role === 'admin') redirect('/admin/dashboard')
+  if (profile.role === 'admin' || profile.role === 'supervisor') {
+    redirect('/admin/dashboard')
+  }
   redirect('/zones')
 }

@@ -1,5 +1,7 @@
 import { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import { getAllProfiles } from '@/lib/db/queries'
+import { getProfile } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import CreateUserForm from '@/components/admin/CreateUserForm'
@@ -18,6 +20,10 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 export default async function UsersPage() {
+  const profile = await getProfile()
+  // Vetëm admini menaxhon përdoruesit (middleware bllokon gjithashtu).
+  if (profile?.role !== 'admin') redirect('/admin/dashboard')
+
   const profiles = await getAllProfiles()
 
   return (

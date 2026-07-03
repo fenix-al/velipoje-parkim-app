@@ -47,14 +47,18 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (profile?.role === 'admin' && profile.is_active) {
+    if (
+      (profile?.role === 'admin' || profile?.role === 'supervisor') &&
+      profile.is_active
+    ) {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url))
     }
 
     return NextResponse.redirect(new URL('/zones', request.url))
   }
 
-  // Protect admin routes — check role server-side
+  // Protect admin routes — check role server-side.
+  // Supervisor ka akses në panel, por jo te menaxhimi i përdoruesve.
   if (user && ADMIN_ROUTES.some((r) => pathname.startsWith(r))) {
     const { data: profile } = await supabase
       .from('profiles')
@@ -62,8 +66,13 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (!profile || !profile.is_active || profile.role !== 'admin') {
+    const allowed = profile?.role === 'admin' || profile?.role === 'supervisor'
+    if (!profile || !profile.is_active || !allowed) {
       return NextResponse.redirect(new URL('/zones', request.url))
+    }
+
+    if (profile.role === 'supervisor' && pathname.startsWith('/admin/users')) {
+      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
     }
   }
 

@@ -1,23 +1,14 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Plus, Trash2, Rows3, ExternalLink, X, Loader2, ArrowUp, ArrowDown, Ban } from 'lucide-react'
+import { ArrowLeft, Plus, ExternalLink, X, Loader2, ParkingSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import type { Zone, ZoneRowWithSpots, ParkingSpot } from '@/lib/supabase/types'
-import {
-  createRow,
-  renameRow,
-  deleteRow,
-  addSpotToRow,
-  renameSpot,
-  deleteSpot,
-  setZoneEntry,
-} from '@/lib/actions/zones'
-import { cn } from '@/lib/utils/cn'
+import { addSpot, addSpotsBulk, renameSpot, deleteSpot } from '@/lib/actions/zones'
 import { CarTopView } from '@/components/grid/ParkingStall'
 
 interface Props {
@@ -92,33 +83,20 @@ function SpotChip({
   )
 }
 
-function RowCard({
-  row,
-  index,
-  zoneId,
-  onMutate,
-}: {
-  row: ZoneRowWithSpots
-  index: number
-  zoneId: string
-  onMutate: () => void
-}) {
-  const [label, setLabel] = useState(row.label ?? '')
+export default function ZoneLayoutEditor({ zone, initialRows }: Props) {
+  const router = useRouter()
   const [newSpotCode, setNewSpotCode] = useState('')
+  const [bulkCount, setBulkCount] = useState('')
   const [isPending, startTransition] = useTransition()
 
-  function saveLabel() {
-    if ((label.trim() || null) === (row.label ?? null)) return
-    startTransition(async () => {
-      const res = await renameRow(row.id, zoneId, label)
-      if (res?.error) toast.error(res.error)
-      else onMutate()
-    })
-  }
+  // Rreshtat në DB janë detaj teknik — editori punon me listën e sheshtë.
+  const spots = useMemo(() => initialRows.flatMap((r) => r.spots), [initialRows])
 
-  function addSpot() {
+  const onMutate = () => router.refresh()
+
+  function handleAddSpot() {
     startTransition(async () => {
-      const res = await addSpotToRow(zoneId, row.id, newSpotCode)
+      const res = await addSpot(zone.id, newSpotCode)
       if (res?.error) {
         toast.error(res.error)
       } else {
@@ -128,103 +106,27 @@ function RowCard({
     })
   }
 
-  function removeRow() {
+  function handleAddBulk() {
+    const n = parseInt(bulkCount, 10)
+    if (!Number.isFinite(n) || n < 1) {
+      toast.error('Vendos një numër të vlefshëm vendesh (1–100).')
+      return
+    }
+    if (n > 100) {
+      toast.error('Mund të shtoni deri në 100 vende njëherësh.')
+      return
+    }
     startTransition(async () => {
-      const res = await deleteRow(row.id, zoneId)
-      if (res?.error) toast.error(res.error)
-      else onMutate()
+      const res = await addSpotsBulk(zone.id, n)
+      if (res?.error) {
+        toast.error(res.error)
+      } else {
+        setBulkCount('')
+        toast.success(`U shtuan ${n} vende.`)
+        onMutate()
+      }
     })
   }
-
-  return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">
-          {index + 1}
-        </span>
-        <Input
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          onBlur={saveLabel}
-          placeholder={`Rreshti ${index + 1}`}
-          className="h-8 max-w-[200px] text-sm"
-        />
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs text-gray-400">{row.spots.length} vende</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-            onClick={removeRow}
-            disabled={isPending}
-            aria-label="Fshi rreshtin"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        {row.spots.map((spot) => (
-          <SpotChip key={spot.id} spot={spot} zoneId={zoneId} onMutate={onMutate} />
-        ))}
-        <div className="flex h-[92px] w-32 flex-col justify-between rounded-lg border-2 border-dashed border-gray-300 bg-white p-2">
-          <Input
-            value={newSpotCode}
-            onChange={(e) => setNewSpotCode(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') addSpot()
-            }}
-            placeholder="Emri vendit"
-            className="h-8 text-xs"
-            disabled={isPending}
-          />
-          <button
-            type="button"
-            onClick={addSpot}
-            disabled={isPending}
-            className="flex h-8 items-center justify-center gap-1 rounded-md bg-primary px-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-          >
-            {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-            Shto
-          </button>
-          <span className="text-center text-[10px] text-gray-400">Bosh = auto</span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export default function ZoneLayoutEditor({ zone, initialRows }: Props) {
-  const router = useRouter()
-  const [isPending, startTransition] = useTransition()
-  // initialRows comes fresh from the server on each refresh; use it directly.
-  const rows = initialRows
-
-  const onMutate = () => router.refresh()
-
-  function addRow() {
-    startTransition(async () => {
-      const res = await createRow(zone.id)
-      if (res?.error) toast.error(res.error)
-      else router.refresh()
-    })
-  }
-
-  function changeEntry(position: 'top' | 'bottom' | 'none') {
-    if (position === zone.entry_position) return
-    startTransition(async () => {
-      const res = await setZoneEntry(zone.id, position)
-      if (res?.error) toast.error(res.error)
-      else router.refresh()
-    })
-  }
-
-  const entryOptions = [
-    { value: 'top' as const, label: 'Lart', icon: ArrowUp },
-    { value: 'bottom' as const, label: 'Poshtë', icon: ArrowDown },
-    { value: 'none' as const, label: 'Hiq', icon: Ban },
-  ]
 
   return (
     <div className="space-y-5">
@@ -239,68 +141,93 @@ export default function ZoneLayoutEditor({ zone, initialRows }: Props) {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Layout — {zone.name}</h1>
+            <h1 className="text-xl font-bold text-gray-900">Vendet — {zone.name}</h1>
             <p className="text-xs text-muted-foreground">
-              Shto rreshta dhe vende parkimi. Rreshtat çiftohen majtas/djathtas në pamjen e punonjësit.
+              {spots.length} vende gjithsej. Shto një nga një ose shumë njëherësh; kliko emrin për ta ndryshuar.
             </p>
           </div>
         </div>
         <Button asChild variant="outline" size="sm">
-          <Link href={`/zones/${zone.code}`} target="_blank">
+          <Link href={`/admin/zones/${zone.id}/view`}>
             <ExternalLink className="mr-1.5 h-4 w-4" />
             Shiko pamjen
           </Link>
         </Button>
       </div>
 
-      {/* Entry position */}
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white p-3">
-        <span className="text-sm font-medium text-gray-700">Hyrja (Hyrje):</span>
-        <div className="flex gap-1.5">
-          {entryOptions.map(({ value, label, icon: Icon }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => changeEntry(value)}
+      {/* Shtimi i vendeve */}
+      <div className="flex flex-wrap items-end gap-4 rounded-xl border border-gray-200 bg-white p-4">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="new-spot-code" className="text-xs font-medium text-gray-600">
+            Shto një vend (emri opsional)
+          </label>
+          <div className="flex gap-1.5">
+            <Input
+              id="new-spot-code"
+              value={newSpotCode}
+              onChange={(e) => setNewSpotCode(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAddSpot()
+              }}
+              placeholder="Bosh = auto (V01…)"
+              className="h-9 w-40 text-sm"
               disabled={isPending}
-              className={cn(
-                'flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50',
-                zone.entry_position === value
-                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                  : 'border-gray-200 text-gray-600 hover:bg-gray-50',
-              )}
+            />
+            <Button size="sm" className="h-9" onClick={handleAddSpot} disabled={isPending}>
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Shto
+            </Button>
+          </div>
+        </div>
+
+        <div className="hidden h-9 border-l border-gray-200 sm:block" />
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="bulk-count" className="text-xs font-medium text-gray-600">
+            Shto shumë njëherësh (1–100)
+          </label>
+          <div className="flex gap-1.5">
+            <Input
+              id="bulk-count"
+              type="number"
+              min={1}
+              max={100}
+              value={bulkCount}
+              onChange={(e) => setBulkCount(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAddBulk()
+              }}
+              placeholder="p.sh. 34"
+              className="h-9 w-24 text-sm"
+              disabled={isPending}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 border-primary/30 text-primary hover:bg-primary/5"
+              onClick={handleAddBulk}
+              disabled={isPending}
             >
-              <Icon className="h-4 w-4" />
-              {label}
-            </button>
-          ))}
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Shto N
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Rows */}
-      {rows.length === 0 ? (
+      {/* Vendet */}
+      {spots.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed py-16 text-muted-foreground">
-          <Rows3 className="h-10 w-10 opacity-30" />
-          <p className="text-sm">Nuk ka rreshta. Shto rreshtin e parë.</p>
-          <Button variant="outline" size="sm" onClick={addRow} disabled={isPending}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Shto rresht
-          </Button>
+          <ParkingSquare className="h-10 w-10 opacity-30" />
+          <p className="text-sm">Nuk ka vende ende. Shto vendet e para më lart.</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {rows.map((row, i) => (
-            <RowCard key={row.id} row={row} index={i} zoneId={zone.id} onMutate={onMutate} />
-          ))}
-
-          <Button variant="outline" className="w-full" onClick={addRow} disabled={isPending}>
-            {isPending ? (
-              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="mr-1.5 h-4 w-4" />
-            )}
-            Shto rresht
-          </Button>
+        <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+          <div className="flex flex-wrap gap-3">
+            {spots.map((spot) => (
+              <SpotChip key={spot.id} spot={spot} zoneId={zone.id} onMutate={onMutate} />
+            ))}
+          </div>
         </div>
       )}
     </div>

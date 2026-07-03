@@ -118,27 +118,12 @@ export async function toggleZoneActive(zoneId: string, isActive: boolean) {
   return { success: true }
 }
 
-export async function setZoneEntry(
-  zoneId: string,
-  position: 'top' | 'bottom' | 'none'
-) {
-  await requireAdmin()
-  const supabase = await createClient()
-
-  const { error } = await supabase
-    .from('zones')
-    .update({ entry_position: position } as any)
-    .eq('id', zoneId)
-
-  if (error) return { error: error.message }
-
-  revalidatePath(`/admin/zones/${zoneId}/layout`)
-  revalidatePath('/zones')
-  return { success: true }
-}
-
 // ============================================================
-// GRID LAYOUT: rows ("rreshta") + spots
+// VENDET E PARKIMIT (lista e sheshtë)
+//
+// Tabela zone_rows mbetet në DB si mbajtëse teknike (getZoneLayout dhe
+// realtime ndërtohen mbi të), por UI nuk e ekspozon më konceptin e
+// rreshtave: çdo vend i ri futet në "rreshtin default" të zonës.
 // ============================================================
 
 function revalidateLayout(zoneId: string) {
@@ -166,78 +151,36 @@ async function nextSpotCode(
   return code
 }
 
-export async function createRow(zoneId: string) {
-  await requireAdmin()
-  const supabase = await createClient()
-
+/** Rreshti i fundit i zonës — krijohet automatikisht nëse zona s'ka asnjë. */
+async function getOrCreateDefaultRow(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  zoneId: string
+): Promise<{ rowId?: string; error?: string }> {
   const { data: rows } = await supabase
     .from('zone_rows')
-    .select('position')
+    .select('id')
     .eq('zone_id', zoneId)
     .order('position', { ascending: false })
     .limit(1)
 
-  const nextPos = rows && rows.length > 0 ? (rows[0].position as number) + 1 : 0
+  if (rows && rows.length > 0) return { rowId: rows[0].id as string }
 
-  const { error } = await supabase
+  const { data: created, error } = await supabase
     .from('zone_rows')
-    .insert({ zone_id: zoneId, position: nextPos, label: null } as any)
-
-  if (error) return { error: error.message }
-
-  revalidateLayout(zoneId)
-  return { success: true }
-}
-
-export async function renameRow(rowId: string, zoneId: string, label: string) {
-  await requireAdmin()
-  const supabase = await createClient()
-
-  const { error } = await supabase
-    .from('zone_rows')
-    .update({ label: label.trim() || null } as any)
-    .eq('id', rowId)
-
-  if (error) return { error: error.message }
-
-  revalidateLayout(zoneId)
-  return { success: true }
-}
-
-export async function deleteRow(rowId: string, zoneId: string) {
-  await requireAdmin()
-  const supabase = await createClient()
-
-  // Block deletion if any spot in the row has an active session.
-  const { data: spots } = await supabase
-    .from('parking_spots')
+    .insert({ zone_id: zoneId, position: 0, label: null } as any)
     .select('id')
-    .eq('row_id', rowId)
+    .single()
 
-  if (spots && spots.length > 0) {
-    const spotIds = spots.map((s) => s.id)
-    const { data: active } = await supabase
-      .from('parking_sessions')
-      .select('id')
-      .in('spot_id', spotIds)
-      .is('released_at', null)
-      .limit(1)
-
-    if (active && active.length > 0) {
-      return { error: 'Nuk mund të fshini një rresht me vende të zëna.' }
-    }
-  }
-
-  const { error } = await supabase.from('zone_rows').delete().eq('id', rowId)
-  if (error) return { error: error.message }
-
-  revalidateLayout(zoneId)
-  return { success: true }
+  if (error || !created) return { error: error?.message ?? 'Nuk u krijua dot rreshti.' }
+  return { rowId: created.id as string }
 }
 
-export async function addSpotToRow(zoneId: string, rowId: string, code?: string) {
+export async function addSpot(zoneId: string, code?: string) {
   await requireAdmin()
   const supabase = await createClient()
+
+  const { rowId, error: rowError } = await getOrCreateDefaultRow(supabase, zoneId)
+  if (!rowId) return { error: rowError }
 
   const { data: existing } = await supabase
     .from('parking_spots')
@@ -266,6 +209,66 @@ export async function addSpotToRow(zoneId: string, rowId: string, code?: string)
 
   revalidateLayout(zoneId)
   return { success: true }
+}
+
+/** Shton disa vende njëherësh, me kode automatike V{n}. */
+export async function addSpotsBulk(zoneId: string, count: number) {
+  await requireAdmin()
+  const supabase = await createClient()
+
+  const n = Math.floor(count)
+  if (!Number.isFinite(n) || n < 1) {
+    return { error: 'Numri i vendeve duhet të jetë të paktën 1.' }
+  }
+  if (n > 100) {
+    return { error: 'Mund të shtoni deri në 100 vende njëherësh.' }
+  }
+
+  const { rowId, error: rowError } = await getOrCreateDefaultRow(supabase, zoneId)
+  if (!rowId) return { error: rowError }
+
+  const [{ data: existing }, { data: zoneSpots }] = await Promise.all([
+    supabase
+      .from('parking_spots')
+      .select('position')
+      .eq('row_id', rowId)
+      .order('position', { ascending: false })
+      .limit(1),
+    supabase
+      .from('parking_spots')
+      .select('spot_code')
+      .eq('zone_id', zoneId),
+  ])
+
+  const startPos = existing && existing.length > 0 ? (existing[0].position as number) + 1 : 0
+  const used = new Set((zoneSpots ?? []).map((s: any) => s.spot_code as string))
+
+  // Gjenero n kode të lira V01, V02, ... duke mbushur edhe boshllëqet nga fshirjet.
+  const inserts = []
+  let num = 1
+  for (let i = 0; i < n; i++) {
+    let code = `V${String(num).padStart(2, '0')}`
+    while (used.has(code)) {
+      num++
+      code = `V${String(num).padStart(2, '0')}`
+    }
+    used.add(code)
+    inserts.push({
+      zone_id: zoneId,
+      row_id: rowId,
+      spot_code: code,
+      position: startPos + i,
+      polygon: null,
+      current_status: 'free',
+      is_active: true,
+    })
+  }
+
+  const { error } = await supabase.from('parking_spots').insert(inserts as any)
+  if (error) return { error: error.message }
+
+  revalidateLayout(zoneId)
+  return { success: true, added: n }
 }
 
 export async function renameSpot(spotId: string, zoneId: string, code: string) {

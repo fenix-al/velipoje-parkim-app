@@ -9,24 +9,29 @@ import {
   Map,
   Users,
   Settings,
-  MapPin,
   LogOut,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { signOut } from '@/lib/actions/auth'
 import BottomNav from '@/components/shared/BottomNav'
+import type { AppRole } from '@/lib/supabase/types'
 
 const NAV_ITEMS = [
-  { href: '/admin/dashboard', label: 'Dashboard',   icon: LayoutDashboard },
-  { href: '/admin/reports',   label: 'Raporte',     icon: FileText },
-  { href: '/admin/history',   label: 'Historiku',   icon: History },
-  { href: '/admin/zones',     label: 'Zonat',       icon: Map },
-  { href: '/admin/users',     label: 'Përdoruesit', icon: Users },
-  { href: '/admin/settings',  label: 'Cilësimet',   icon: Settings },
+  { href: '/admin/dashboard', label: 'Dashboard',   icon: LayoutDashboard, adminOnly: false },
+  { href: '/admin/reports',   label: 'Raporte',     icon: FileText,        adminOnly: false },
+  { href: '/admin/history',   label: 'Historiku',   icon: History,         adminOnly: false },
+  { href: '/admin/zones',     label: 'Zonat',       icon: Map,             adminOnly: false },
+  { href: '/admin/users',     label: 'Përdoruesit', icon: Users,           adminOnly: true },
+  { href: '/admin/settings',  label: 'Cilësimet',   icon: Settings,        adminOnly: false },
 ]
 
-export default function AdminNav() {
+interface Props {
+  role: AppRole
+}
+
+export default function AdminNav({ role }: Props) {
   const pathname = usePathname()
+  const items = NAV_ITEMS.filter((item) => !item.adminOnly || role === 'admin')
 
   return (
     <>
@@ -39,7 +44,9 @@ export default function AdminNav() {
             <p className="truncate text-sm font-semibold leading-tight text-white">
               Parkimi Velipojë
             </p>
-            <p className="text-[11px] text-slate-400">Paneli i administrimit</p>
+            <p className="text-[11px] text-slate-400">
+              {role === 'admin' ? 'Paneli i administrimit' : 'Paneli i mbikëqyrjes'}
+            </p>
           </div>
         </div>
 
@@ -47,7 +54,7 @@ export default function AdminNav() {
           <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
             Menaxhimi
           </p>
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          {items.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || pathname.startsWith(href + '/')
             return (
               <Link
@@ -66,19 +73,6 @@ export default function AdminNav() {
               </Link>
             )
           })}
-
-          <div className="pt-3">
-            <p className="border-t border-slate-800 px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Terreni
-            </p>
-            <Link
-              href="/zones"
-              className="flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-            >
-              <MapPin className="h-5 w-5 flex-shrink-0" />
-              <span>Pamja e punonjësit</span>
-            </Link>
-          </div>
         </nav>
 
         <div className="border-t border-slate-800 px-3 py-3">
@@ -94,7 +88,7 @@ export default function AdminNav() {
         </div>
       </aside>
 
-      <BottomNav items={NAV_ITEMS.slice(0, 5)} />
+      <BottomNav items={items.filter((i) => i.href !== '/admin/settings').slice(0, 5)} />
     </>
   )
 }

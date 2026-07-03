@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { getZoneById, getZoneLayout } from '@/lib/db/queries'
+import { getProfile } from '@/lib/supabase/server'
 import ZoneLayoutEditor from '@/components/admin/ZoneLayoutEditor'
 
 interface Props {
@@ -13,6 +14,10 @@ export const metadata: Metadata = {
 
 export default async function ZoneLayoutPage({ params }: Props) {
   const { zoneId } = await params
+  const profile = await getProfile()
+  // Vetëm admini ndryshon strukturën e vendeve (RLS e bllokon gjithsesi).
+  if (profile?.role !== 'admin') redirect('/admin/zones')
+
   const zone = await getZoneById(zoneId)
   if (!zone) notFound()
 
