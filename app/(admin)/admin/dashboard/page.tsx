@@ -10,6 +10,7 @@ import {
   getRecentEvents,
 } from '@/lib/db/queries'
 import OccupancyCards from '@/components/admin/OccupancyCards'
+import PageHeader from '@/components/shared/PageHeader'
 import ActivityTable from '@/components/admin/ActivityTable'
 import DashboardFilters from '@/components/admin/DashboardFilters'
 import CSVExportButton from '@/components/admin/CSVExportButton'
@@ -93,19 +94,16 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-5 md:space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-0.5 text-xs text-muted-foreground md:hidden">
-            Pamje e shpejte per zonat dhe aktivitetin.
-          </p>
-        </div>
+      <PageHeader
+        title="Dashboard"
+        description="Pamje e shpejtë për zonat dhe aktivitetin."
+      >
         <CSVExportButton
           from={params.from}
           to={params.to}
           zoneCode={selectedZoneCode}
         />
-      </div>
+      </PageHeader>
 
       <Suspense fallback={<div className="h-16 rounded-lg border bg-white animate-pulse" />}>
         <DashboardFilters />

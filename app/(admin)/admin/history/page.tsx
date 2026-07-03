@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { getRecentEvents } from '@/lib/db/queries'
 import ActivityTable from '@/components/admin/ActivityTable'
 import DashboardFilters from '@/components/admin/DashboardFilters'
+import PageHeader from '@/components/shared/PageHeader'
 
 export const metadata: Metadata = {
   title: 'Historiku - Admin Parkimi',
@@ -34,7 +35,10 @@ export default async function HistoryPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-bold text-gray-900">Historiku i veprimeve</h1>
+      <PageHeader
+        title="Historiku i veprimeve"
+        description="Të gjitha zëniet, lirimet dhe ndryshimet e statusit."
+      />
       <DashboardFilters />
       <ActivityTable
         events={activity.events}

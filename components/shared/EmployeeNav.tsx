@@ -24,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import BottomNav from '@/components/shared/BottomNav'
 import { signOut } from '@/lib/actions/auth'
 import type { Profile, Zone } from '@/lib/supabase/types'
 import { cn } from '@/lib/utils/cn'
@@ -92,7 +93,7 @@ export default function EmployeeNav({ profile, zones }: Props) {
         <div className="flex items-center gap-3 px-4 py-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+              <button className="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-ring/50">
                 <Avatar className="h-10 w-10 border border-slate-200">
                   <AvatarFallback className="bg-slate-900 text-xs text-white">
                     {initials}
@@ -147,8 +148,8 @@ export default function EmployeeNav({ profile, zones }: Props) {
             className={cn(
               'flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold transition-colors',
               pathname === '/zones'
-                ? 'border-teal-600 bg-teal-600 text-white'
-                : 'border-slate-200 bg-white text-slate-600',
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
             )}
           >
             <MapPin className="h-4 w-4" />
@@ -164,8 +165,8 @@ export default function EmployeeNav({ profile, zones }: Props) {
                 className={cn(
                   'flex h-9 shrink-0 items-center rounded-full border px-4 text-sm font-semibold transition-colors',
                   active
-                    ? 'border-teal-600 bg-teal-600 text-white'
-                    : 'border-slate-200 bg-white text-slate-600',
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300',
                 )}
               >
                 {zone.code}
@@ -175,28 +176,7 @@ export default function EmployeeNav({ profile, zones }: Props) {
         </nav>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-2 pb-[calc(1.75rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
-        <div className={cn('grid gap-1.5', profile.role === 'admin' ? 'grid-cols-5' : 'grid-cols-3')}>
-          {mobileNav.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || pathname.startsWith(href + '/')
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  'flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-2 text-[10px] font-medium transition-colors',
-                  active
-                    ? 'min-h-[58px] scale-[1.03] bg-blue-600 text-white shadow-sm'
-                    : 'text-gray-600 active:bg-gray-100',
-                )}
-              >
-                <Icon className={cn('shrink-0', active ? 'h-5 w-5' : 'h-4 w-4')} />
-                <span className="max-w-full truncate">{label}</span>
-              </Link>
-            )
-          })}
-        </div>
-      </nav>
+      <BottomNav items={mobileNav} />
     </>
   )
 }

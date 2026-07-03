@@ -1,5 +1,5 @@
-import { AlertTriangle, Clock3, Info, RefreshCcw, TrendingUp, Zap } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
+import { AlertTriangle, Clock3, RefreshCcw, TrendingUp, Zap } from 'lucide-react'
+import StatCard from '@/components/shared/StatCard'
 import type { DashboardInsights } from '@/lib/db/queries'
 import type { OccupancyByZone } from '@/lib/supabase/types'
 import { formatDuration } from '@/lib/utils/time'
@@ -62,45 +62,6 @@ export default function DashboardInsightCards({
     ? `${peak.count} ${peak.type}`
     : 'pa lëvizje'
 
-  const cards = [
-    {
-      title: 'Qarkullim',
-      value: insights.completed_sessions,
-      note: 'lirime në periudhë',
-      info: 'Sa parkime janë mbyllur në periudhën e filtruar. Praktikisht tregon sa herë është liruar një vend.',
-      icon: RefreshCcw,
-      color: 'text-blue-700',
-      bg: 'bg-blue-50',
-    },
-    {
-      title: 'Piku i ditës',
-      value: peakValue,
-      note: peakNote,
-      info: 'Ora me më shumë zënie ose lirime brenda periudhës së filtruar.',
-      icon: Zap,
-      color: 'text-violet-700',
-      bg: 'bg-violet-50',
-    },
-    {
-      title: 'Qëndrim mesatar',
-      value: formatDuration(insights.average_duration_minutes),
-      note: 'për vend të mbyllur',
-      info: 'Mesatarja e kohëzgjatjes për parkimet e mbyllura në periudhën e filtruar.',
-      icon: Clock3,
-      color: 'text-amber-700',
-      bg: 'bg-amber-50',
-    },
-    {
-      title: 'Zona më e ngarkuar',
-      value: busiestZone ? busiestZone.zone_code : '-',
-      note: busiestZone ? `${busiestPct}% zënë` : 'pa të dhëna',
-      info: 'Zona që ka përqindjen më të lartë të vendeve të zëna në këtë moment.',
-      icon: TrendingUp,
-      color: 'text-red-700',
-      bg: 'bg-red-50',
-    },
-  ]
-
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
@@ -118,37 +79,38 @@ export default function DashboardInsightCards({
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 xl:grid-cols-4">
-        {cards.map(({ title, value, note, info, icon: Icon, color, bg }) => (
-          <Card key={title}>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex min-h-[104px] items-start justify-between gap-2 sm:min-h-0 sm:gap-3">
-                <div className="min-w-0">
-                  <div className="flex min-w-0 items-center gap-1">
-                    <p className="truncate text-[11px] font-medium text-muted-foreground sm:text-sm">
-                      {title}
-                    </p>
-                    <span
-                      title={info}
-                      aria-label={info}
-                      className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-400"
-                    >
-                      <Info className="h-3 w-3" />
-                    </span>
-                  </div>
-                  <p className={`mt-1 truncate text-xl font-bold sm:text-2xl ${color}`}>
-                    {value}
-                  </p>
-                  <p className="mt-1 text-[11px] leading-snug text-muted-foreground sm:truncate sm:text-xs">
-                    {note}
-                  </p>
-                </div>
-                <div className={`shrink-0 rounded-full p-1.5 sm:p-2 ${bg}`}>
-                  <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${color}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        <StatCard
+          title="Qarkullim"
+          value={insights.completed_sessions}
+          note="lirime në periudhë"
+          info="Sa parkime janë mbyllur në periudhën e filtruar. Praktikisht tregon sa herë është liruar një vend."
+          icon={RefreshCcw}
+          tone="blue"
+        />
+        <StatCard
+          title="Piku i ditës"
+          value={peakValue}
+          note={peakNote}
+          info="Ora me më shumë zënie ose lirime brenda periudhës së filtruar."
+          icon={Zap}
+          tone="violet"
+        />
+        <StatCard
+          title="Qëndrim mesatar"
+          value={formatDuration(insights.average_duration_minutes)}
+          note="për vend të mbyllur"
+          info="Mesatarja e kohëzgjatjes për parkimet e mbyllura në periudhën e filtruar."
+          icon={Clock3}
+          tone="amber"
+        />
+        <StatCard
+          title="Zona më e ngarkuar"
+          value={busiestZone ? busiestZone.zone_code : '-'}
+          note={busiestZone ? `${busiestPct}% zënë` : 'pa të dhëna'}
+          info="Zona që ka përqindjen më të lartë të vendeve të zëna në këtë moment."
+          icon={TrendingUp}
+          tone="red"
+        />
       </div>
     </div>
   )

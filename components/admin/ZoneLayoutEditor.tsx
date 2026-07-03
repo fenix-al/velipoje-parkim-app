@@ -183,7 +183,7 @@ function RowCard({
             type="button"
             onClick={addSpot}
             disabled={isPending}
-            className="flex h-8 items-center justify-center gap-1 rounded-md bg-blue-600 px-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            className="flex h-8 items-center justify-center gap-1 rounded-md bg-primary px-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
             {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
             Shto

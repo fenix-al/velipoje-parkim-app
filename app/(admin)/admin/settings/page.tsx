@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { getProfile } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import PageHeader from '@/components/shared/PageHeader'
 
 export const metadata: Metadata = {
   title: 'Cilësimet — Admin Parkimi',
@@ -12,7 +13,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-5 max-w-xl">
-      <h1 className="text-xl font-bold text-gray-900">Cilësimet</h1>
+      <PageHeader title="Cilësimet" description="Llogaria dhe informacioni i sistemit." />
 
       <Card>
         <CardHeader>

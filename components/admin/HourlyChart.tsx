@@ -11,6 +11,7 @@ import {
   Legend,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { STATUS_COLORS } from '@/lib/design/status'
 
 interface HourData {
   hour: number
@@ -64,8 +65,8 @@ export default function HourlyChart({ arrivals, departures }: Props) {
               labelFormatter={(label) => `Ora ${formatHour(Number(label))}`}
             />
             <Legend />
-            <Bar dataKey="zënie"  fill="#22c55e" radius={[3, 3, 0, 0]} />
-            <Bar dataKey="lirime" fill="#ef4444" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="zënie"  fill={STATUS_COLORS.occupied} radius={[3, 3, 0, 0]} />
+            <Bar dataKey="lirime" fill={STATUS_COLORS.free} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

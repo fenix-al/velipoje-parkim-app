@@ -1,6 +1,8 @@
 import { Metadata } from 'next'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import PageHeader from '@/components/shared/PageHeader'
+import StatCard from '@/components/shared/StatCard'
 import CSVExportButton from '@/components/admin/CSVExportButton'
 import DashboardFilters from '@/components/admin/DashboardFilters'
 import ReportsExtraFilters from '@/components/admin/ReportsExtraFilters'
@@ -80,83 +82,48 @@ export default async function ReportsPage({ searchParams }: Props) {
   const periodLabel = getPeriodLabel(params.from, params.to)
   const employees = profiles.filter((profile) => profile.role === 'employee')
 
-  const statCards = [
-    {
-      title: 'Totali i seancave',
-      value: stats.total_sessions,
-      note: 'për periudhën',
-      icon: FileText,
-      color: 'text-blue-700',
-      bg: 'bg-blue-50',
-    },
-    {
-      title: 'Orë totale',
-      value: formatDuration(stats.total_duration_minutes),
-      note: 'kohë përdorimi',
-      icon: Timer,
-      color: 'text-emerald-700',
-      bg: 'bg-emerald-50',
-    },
-    {
-      title: 'Qëndrim mesatar',
-      value: formatDuration(stats.average_duration_minutes),
-      note: 'për seancë',
-      icon: Clock3,
-      color: 'text-amber-700',
-      bg: 'bg-amber-50',
-    },
-    {
-      title: 'Zona kryesore',
-      value: stats.top_zone_code ?? '-',
-      note: stats.top_zone_code ? `${stats.top_zone_sessions} seanca` : 'pa të dhëna',
-      icon: Trophy,
-      color: 'text-red-700',
-      bg: 'bg-red-50',
-    },
-  ]
-
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Raporte</h1>
-          <p className="mt-0.5 text-xs text-muted-foreground md:hidden">
-            Analizë e seancave të mbyllura.
-          </p>
-        </div>
+      <PageHeader title="Raporte" description="Analizë e seancave të mbyllura.">
         <CSVExportButton
           from={params.from}
           to={params.to}
           zoneCode={zoneCode || undefined}
         />
-      </div>
+      </PageHeader>
 
       <DashboardFilters />
       <ReportsExtraFilters employees={employees} />
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
-        {statCards.map(({ title, value, note, icon: Icon, color, bg }) => (
-          <Card key={title} className="overflow-hidden transition-shadow hover:shadow-md">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-medium text-muted-foreground sm:text-sm">
-                    {title}
-                  </p>
-                  <p className={`mt-1 truncate text-lg font-bold leading-none sm:text-2xl ${color}`}>
-                    {value}
-                  </p>
-                  <p className="mt-1 truncate text-[11px] text-muted-foreground sm:text-xs">
-                    {note}
-                  </p>
-                </div>
-                <div className={`shrink-0 rounded-full p-2 sm:p-2.5 ${bg}`}>
-                  <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${color}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        <StatCard
+          title="Totali i seancave"
+          value={stats.total_sessions}
+          note="për periudhën"
+          icon={FileText}
+          tone="blue"
+        />
+        <StatCard
+          title="Orë totale"
+          value={formatDuration(stats.total_duration_minutes)}
+          note="kohë përdorimi"
+          icon={Timer}
+          tone="green"
+        />
+        <StatCard
+          title="Qëndrim mesatar"
+          value={formatDuration(stats.average_duration_minutes)}
+          note="për seancë"
+          icon={Clock3}
+          tone="amber"
+        />
+        <StatCard
+          title="Zona kryesore"
+          value={stats.top_zone_code ?? '-'}
+          note={stats.top_zone_code ? `${stats.top_zone_sessions} seanca` : 'pa të dhëna'}
+          icon={Trophy}
+          tone="red"
+        />
       </div>
 
       <Card>

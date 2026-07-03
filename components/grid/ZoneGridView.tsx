@@ -10,6 +10,7 @@ import { occupySpot, releaseSpot, setSpotOutOfService, restoreSpot } from '@/lib
 import SpotBottomSheet from '@/components/map/SpotBottomSheet'
 import OfflineBanner from '@/components/map/OfflineBanner'
 import ParkingStall from './ParkingStall'
+import SpotBox from './SpotBox'
 
 interface Props {
   zone: Zone
@@ -246,12 +247,15 @@ export default function ZoneGridView({ zone, initialRows, initialActiveSessions,
     runAction(s, setSpotOutOfService, `Vendi ${s.spot_code} u vendos jashtë shërbimit.`)
   const handleRestore = (s: ParkingSpot) => runAction(s, restoreSpot, `Vendi ${s.spot_code} u rikthye.`)
 
-  // ── Pair rows two-by-two for the aisle layout ───────────────────────────
+  // ── Pair rows two-by-two for the aisle layout (mobile) ──────────────────
   const pairs = useMemo(() => {
     const out: ZoneRowWithSpots[][] = []
     for (let i = 0; i < rows.length; i += 2) out.push(rows.slice(i, i + 2))
     return out
   }, [rows])
+
+  // ── Flat list in row order for the simple desktop grid ──────────────────
+  const allSpots = useMemo(() => rows.flatMap((r) => r.spots), [rows])
 
   const totalFree = freeCount(rows)
   const hasLayout = rows.some((r) => r.spots.length > 0)
@@ -273,9 +277,26 @@ export default function ZoneGridView({ zone, initialRows, initialActiveSessions,
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <div className="flex-1 text-center">
-          <h1 className="text-lg font-bold uppercase tracking-wide text-cyan-500">{zone.name}</h1>
+        <div className="flex-1 text-center md:text-left">
+          <h1 className="text-lg font-bold uppercase tracking-wide text-gray-900">{zone.name}</h1>
         </div>
+
+        {/* Legjenda — vetëm desktop */}
+        <div className="hidden items-center gap-4 text-xs text-gray-500 md:flex">
+          <span className="flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded border border-emerald-300 bg-emerald-50" />
+            I lirë
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded border border-red-200 bg-red-50" />
+            I zënë
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded border border-gray-200 bg-gray-100" />
+            Jashtë shërbimit
+          </span>
+        </div>
+
         <div className="min-w-[44px] text-right">
           <span className="text-lg font-bold text-emerald-500">{totalFree}</span>
           <span className="ml-1 text-xs text-gray-400">lirë</span>
@@ -283,36 +304,54 @@ export default function ZoneGridView({ zone, initialRows, initialActiveSessions,
       </header>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-4 py-5">
+      <div className="flex-1 overflow-y-auto px-4 py-5 md:px-6">
         {!hasLayout ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-gray-400">
             <p className="text-sm">Kjo zonë nuk ka ende një layout.</p>
             <p className="text-xs">Admini mund ta krijojë te paneli i zonave.</p>
           </div>
         ) : (
-          <div className="mx-auto flex max-w-md flex-col gap-8">
-            {zone.entry_position === 'top' && <EntryMarker at="top" />}
-            {pairs.map((pair, i) => {
-              if (pair.length === 2) {
+          <>
+            {/* Mobile: layout si parkim real me korsi */}
+            <div className="mx-auto flex max-w-md flex-col gap-8 md:hidden">
+              {zone.entry_position === 'top' && <EntryMarker at="top" />}
+              {pairs.map((pair, i) => {
+                if (pair.length === 2) {
+                  return (
+                    <div key={i} className="flex items-stretch gap-2">
+                      <RowColumn row={pair[0]} pendingSpotId={pendingSpotId} onSpotClick={handleSpotClick} />
+                      <AisleLabel free={freeCount(pair)} />
+                      <RowColumn row={pair[1]} pendingSpotId={pendingSpotId} onSpotClick={handleSpotClick} />
+                    </div>
+                  )
+                }
+                // Single leftover row → label on the side
                 return (
                   <div key={i} className="flex items-stretch gap-2">
                     <RowColumn row={pair[0]} pendingSpotId={pendingSpotId} onSpotClick={handleSpotClick} />
                     <AisleLabel free={freeCount(pair)} />
-                    <RowColumn row={pair[1]} pendingSpotId={pendingSpotId} onSpotClick={handleSpotClick} />
                   </div>
                 )
-              }
-              // Single leftover row → label on the side
-              return (
-                <div key={i} className="flex items-stretch gap-2">
-                  <RowColumn row={pair[0]} pendingSpotId={pendingSpotId} onSpotClick={handleSpotClick} />
-                  <AisleLabel free={freeCount(pair)} />
-                </div>
-              )
-            })}
+              })}
 
-            {zone.entry_position === 'bottom' && <EntryMarker at="bottom" />}
-          </div>
+              {zone.entry_position === 'bottom' && <EntryMarker at="bottom" />}
+            </div>
+
+            {/* Desktop: grid i thjeshtë me kuti sa gjithë gjerësia */}
+            <div
+              className="hidden gap-2.5 md:grid"
+              style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))' }}
+            >
+              {allSpots.map((spot) => (
+                <SpotBox
+                  key={spot.id}
+                  spot={spot}
+                  isPending={pendingSpotId === spot.id}
+                  onClick={handleSpotClick}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
 

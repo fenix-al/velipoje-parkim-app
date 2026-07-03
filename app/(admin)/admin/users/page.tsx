@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import CreateUserForm from '@/components/admin/CreateUserForm'
 import UserActions from '@/components/admin/UserActions'
+import PageHeader from '@/components/shared/PageHeader'
 import { formatLocal } from '@/lib/utils/time'
 
 export const metadata: Metadata = {
@@ -21,7 +22,10 @@ export default async function UsersPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-bold text-gray-900">Përdoruesit ({profiles.length})</h1>
+      <PageHeader
+        title={`Përdoruesit (${profiles.length})`}
+        description="Llogaritë e stafit dhe të drejtat e tyre."
+      />
 
       <Card>
         <CardHeader>

@@ -35,6 +35,8 @@ import { toast } from 'sonner'
 import type { Zone } from '@/lib/supabase/types'
 import { deleteZone, toggleZoneActive } from '@/lib/actions/zones'
 import { cn } from '@/lib/utils/cn'
+import EmptyState from '@/components/shared/EmptyState'
+import PageHeader from '@/components/shared/PageHeader'
 import ZoneFormDialog from './ZoneFormDialog'
 
 interface Props {
@@ -80,16 +82,15 @@ export default function ZonesManager({ zones }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">
-          Zonat e parkimit ({zones.length})
-        </h1>
+      <PageHeader
+        title={`Zonat e parkimit (${zones.length})`}
+        description="Krijo, ndrysho dhe menaxho layout-in e zonave."
+      >
         <Button onClick={() => setShowCreate(true)} size="sm">
           <Plus className="h-4 w-4 mr-1.5" />
           Shto zonë
         </Button>
-      </div>
+      </PageHeader>
 
       <div className="grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1 md:hidden">
         {[
@@ -104,7 +105,7 @@ export default function ZonesManager({ zones }: Props) {
             className={cn(
               'rounded-md px-2 py-2 text-xs font-semibold transition-colors',
               mobileTab === tab.key
-                ? 'bg-white text-blue-700 shadow-sm'
+                ? 'bg-white text-primary shadow-sm'
                 : 'text-gray-600',
             )}
           >
@@ -115,14 +116,16 @@ export default function ZonesManager({ zones }: Props) {
 
       {/* Zone grid */}
       {zones.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3 border-2 border-dashed rounded-lg">
-          <MapPin className="h-10 w-10 opacity-30" />
-          <p className="text-sm">Nuk ka zona. Shtoni zonën e parë.</p>
+        <EmptyState
+          icon={MapPin}
+          title="Nuk ka zona ende"
+          description="Krijo zonën e parë të parkimit për të filluar menaxhimin e vendeve."
+        >
           <Button variant="outline" size="sm" onClick={() => setShowCreate(true)}>
             <Plus className="h-4 w-4 mr-1.5" />
             Shto zonën e parë
           </Button>
-        </div>
+        </EmptyState>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {visibleZones.map((zone) => (

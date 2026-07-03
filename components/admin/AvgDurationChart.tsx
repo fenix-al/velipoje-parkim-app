@@ -11,17 +11,11 @@ import {
   Cell,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CHART_CATEGORICAL } from '@/lib/design/status'
 import { formatDuration } from '@/lib/utils/time'
 
 interface Props {
   data: { zone_code: string; avg_minutes: number }[]
-}
-
-const ZONE_COLORS: Record<string, string> = {
-  Z1: '#3b82f6',
-  Z2: '#22c55e',
-  Z3: '#f59e0b',
-  Z4: '#ef4444',
 }
 
 export default function AvgDurationChart({ data }: Props) {
@@ -43,10 +37,10 @@ export default function AvgDurationChart({ data }: Props) {
               formatter={(value) => [formatDuration(Number(value ?? 0)), 'Mesatare']}
             />
             <Bar dataKey="avg_minutes" radius={[4, 4, 0, 0]}>
-              {data.map((entry) => (
+              {data.map((entry, index) => (
                 <Cell
                   key={entry.zone_code}
-                  fill={ZONE_COLORS[entry.zone_code] ?? '#6b7280'}
+                  fill={CHART_CATEGORICAL[index % CHART_CATEGORICAL.length]}
                 />
               ))}
             </Bar>

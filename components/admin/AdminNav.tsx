@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { signOut } from '@/lib/actions/auth'
+import BottomNav from '@/components/shared/BottomNav'
 
 const NAV_ITEMS = [
   { href: '/admin/dashboard', label: 'Dashboard',   icon: LayoutDashboard },
@@ -29,28 +30,35 @@ export default function AdminNav() {
 
   return (
     <>
-      <aside className="hidden min-h-screen w-56 flex-shrink-0 flex-col bg-gray-900 text-white md:flex">
-        <div className="flex items-center gap-2 border-b border-gray-700 px-3 py-4">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold">
+      <aside className="hidden min-h-screen w-60 flex-shrink-0 flex-col border-r border-slate-800 bg-slate-900 text-white md:flex">
+        <div className="flex items-center gap-2.5 border-b border-slate-800 px-4 py-4">
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold shadow-sm">
             P
           </div>
-          <span className="truncate text-sm font-semibold text-white">
-            Parkimi Admin
-          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold leading-tight text-white">
+              Parkimi Velipojë
+            </p>
+            <p className="text-[11px] text-slate-400">Paneli i administrimit</p>
+          </div>
         </div>
 
-        <nav className="flex-1 space-y-1 px-2 py-3">
+        <nav className="flex-1 space-y-1 px-3 py-4">
+          <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            Menaxhimi
+          </p>
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || pathname.startsWith(href + '/')
             return (
               <Link
                 key={href}
                 href={href}
+                aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-2 py-2 text-sm font-medium transition-colors',
+                  'flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors',
                   active
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white',
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white',
                 )}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
@@ -59,22 +67,25 @@ export default function AdminNav() {
             )
           })}
 
-          <div className="border-t border-gray-700 pt-2">
+          <div className="pt-3">
+            <p className="border-t border-slate-800 px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Terreni
+            </p>
             <Link
               href="/zones"
-              className="flex items-center gap-3 rounded-lg px-2 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-800 hover:text-white"
+              className="flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
             >
               <MapPin className="h-5 w-5 flex-shrink-0" />
-              <span>Pamja punonjes</span>
+              <span>Pamja e punonjësit</span>
             </Link>
           </div>
         </nav>
 
-        <div className="border-t border-gray-700 px-2 py-3">
+        <div className="border-t border-slate-800 px-3 py-3">
           <form action={signOut}>
             <button
               type="submit"
-              className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-red-700 hover:text-white"
+              className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-red-600/90 hover:text-white"
             >
               <LogOut className="h-5 w-5 flex-shrink-0" />
               <span>Dil</span>
@@ -83,28 +94,7 @@ export default function AdminNav() {
         </div>
       </aside>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-2 pb-[calc(1.75rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
-        <div className="grid grid-cols-5 gap-1.5">
-          {NAV_ITEMS.slice(0, 5).map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || pathname.startsWith(href + '/')
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  'flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-2 text-[10px] font-medium transition-colors',
-                  active
-                    ? 'min-h-[58px] scale-[1.03] bg-blue-600 text-white shadow-sm'
-                    : 'text-gray-600 active:bg-gray-100',
-                )}
-              >
-                <Icon className={cn('flex-shrink-0', active ? 'h-5 w-5' : 'h-4 w-4')} />
-                <span className="max-w-full truncate">{label}</span>
-              </Link>
-            )
-          })}
-        </div>
-      </nav>
+      <BottomNav items={NAV_ITEMS.slice(0, 5)} />
     </>
   )
 }

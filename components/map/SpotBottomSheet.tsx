@@ -74,7 +74,7 @@ export default function SpotBottomSheet({
         role="dialog"
         aria-modal="true"
         aria-label={`Vend parkimi ${spot.spot_code}`}
-        className="absolute bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-white p-5 shadow-2xl animate-in slide-in-from-bottom duration-250"
+        className="absolute bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-white p-5 shadow-2xl animate-in slide-in-from-bottom duration-250 md:bottom-auto md:left-1/2 md:right-auto md:top-1/2 md:w-full md:max-w-md md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl"
         style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -166,7 +166,7 @@ export default function SpotBottomSheet({
             <Button
               onClick={() => onRestore(spot)}
               disabled={isPending || !isOnline}
-              className="h-12 w-full bg-blue-600 text-base text-white hover:bg-blue-700"
+              className="h-12 w-full bg-primary text-base text-primary-foreground hover:bg-primary/90"
             >
               {isPending ? (
                 <>

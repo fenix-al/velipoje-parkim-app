@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import { STATUS_COLORS } from './lib/design/status'
 
 const config: Config = {
   darkMode: ['class'],
@@ -52,10 +53,10 @@ const config: Config = {
           foreground: 'hsl(var(--card-foreground))',
         },
         spot: {
-          free: '#22c55e',
-          occupied: '#ef4444',
-          out_of_service: '#6b7280',
-          pending: '#eab308',
+          free: STATUS_COLORS.free,
+          occupied: STATUS_COLORS.occupied,
+          out_of_service: STATUS_COLORS.out_of_service,
+          pending: STATUS_COLORS.pending,
         },
       },
       borderRadius: {

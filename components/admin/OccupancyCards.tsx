@@ -5,6 +5,10 @@ import { useMemo, useState } from 'react'
 import { AlertCircle, Car, Eye, LayoutGrid, ParkingSquare, Percent } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import OccupancyBadge from '@/components/shared/OccupancyBadge'
+import OccupancyBar from '@/components/shared/OccupancyBar'
+import StatCard from '@/components/shared/StatCard'
+import { occupancyColor } from '@/lib/design/status'
 import type { OccupancyByZone } from '@/lib/supabase/types'
 import { cn } from '@/lib/utils/cn'
 import { formatDuration } from '@/lib/utils/time'
@@ -23,8 +27,7 @@ function ZoneCard({
   totalMinutes: number
 }) {
   const pct = Number(zone.occupancy_percentage)
-  const occupancyColor = pct > 80 ? '#ef4444' : pct > 50 ? '#f59e0b' : '#22c55e'
-  const statusLabel = pct > 80 ? 'E ngarkuar' : pct > 50 ? 'Mesatare' : 'E lirë'
+  const color = occupancyColor(pct)
 
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-md">
@@ -35,23 +38,15 @@ function ZoneCard({
               <span className="rounded-md bg-slate-900 px-2 py-1 text-xs font-bold text-white">
                 {zone.zone_code}
               </span>
-              <span
-                className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                style={{
-                  color: occupancyColor,
-                  backgroundColor: `${occupancyColor}12`,
-                }}
-              >
-                {statusLabel}
-              </span>
+              <OccupancyBadge pct={pct} />
             </div>
             <CardTitle className="truncate text-base leading-tight">{zone.zone_name}</CardTitle>
           </div>
           <div
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold"
             style={{
-              color: occupancyColor,
-              background: `conic-gradient(${occupancyColor} ${pct * 3.6}deg, #eef2f7 0deg)`,
+              color,
+              background: `conic-gradient(${color} ${pct * 3.6}deg, #eef2f7 0deg)`,
             }}
           >
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white">
@@ -80,21 +75,7 @@ function ZoneCard({
           </div>
         </div>
 
-        <div>
-          <div className="mb-1.5 flex justify-between text-xs text-muted-foreground">
-            <span>Zënia</span>
-            <span>{pct}%</span>
-          </div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-gray-100">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${pct}%`,
-                backgroundColor: occupancyColor,
-              }}
-            />
-          </div>
-        </div>
+        <OccupancyBar pct={pct} showLabel />
       </CardContent>
       <CardFooter className="grid grid-cols-2 gap-2 border-t bg-slate-50/70 p-3">
         <Button asChild variant="outline" size="sm" className="h-9 px-2 text-xs sm:text-sm">
@@ -137,64 +118,18 @@ export default function OccupancyCards({ data, totalMinutesByZone, view = 'all' 
     ? Math.round((totals.occupied / activeSpotsTotal) * 100)
     : 0
 
-  const summaryCards = [
-    {
-      title: 'Të zëna',
-      value: totals.occupied,
-      icon: Car,
-      color: 'text-red-600',
-      bg: 'bg-red-50',
-    },
-    {
-      title: 'Të lira',
-      value: totals.free,
-      icon: ParkingSquare,
-      color: 'text-green-600',
-      bg: 'bg-green-50',
-    },
-    {
-      title: 'Zënia %',
-      value: `${overallPct}%`,
-      icon: Percent,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
-    },
-    {
-      title: 'Jashtë shërbimit',
-      value: totals.oos,
-      icon: AlertCircle,
-      color: 'text-gray-600',
-      bg: 'bg-gray-50',
-    },
-  ]
-
   const showSummary = view === 'all' || view === 'summary'
   const showZones = view === 'all' || view === 'zones'
 
   return (
     <div className="space-y-4">
       {showSummary && (
-      <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
-        {summaryCards.map(({ title, value, icon: Icon, color, bg }) => (
-          <Card key={title} className="overflow-hidden transition-shadow hover:shadow-md">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-medium text-muted-foreground sm:text-sm">
-                    {title}
-                  </p>
-                  <p className={`mt-1 text-xl font-bold leading-none sm:text-2xl ${color}`}>
-                    {value}
-                  </p>
-                </div>
-                <div className={`rounded-full p-2 sm:p-2.5 ${bg}`}>
-                  <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${color}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
+          <StatCard title="Të zëna" value={totals.occupied} icon={Car} tone="red" />
+          <StatCard title="Të lira" value={totals.free} icon={ParkingSquare} tone="green" />
+          <StatCard title="Zënia %" value={`${overallPct}%`} icon={Percent} tone="blue" />
+          <StatCard title="Jashtë shërbimit" value={totals.oos} icon={AlertCircle} tone="gray" />
+        </div>
       )}
 
       {showZones && data.length > 0 && (
@@ -209,7 +144,7 @@ export default function OccupancyCards({ data, totalMinutesByZone, view = 'all' 
                   className={cn(
                     'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
                     selectedZone?.zone_id === zone.zone_id
-                      ? 'border-blue-600 bg-blue-600 text-white'
+                      ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-gray-200 bg-white text-gray-600',
                   )}
                 >
