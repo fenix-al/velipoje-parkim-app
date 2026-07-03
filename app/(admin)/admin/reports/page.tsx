@@ -3,7 +3,8 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PageHeader from '@/components/shared/PageHeader'
 import StatCard from '@/components/shared/StatCard'
-import CSVExportButton from '@/components/admin/CSVExportButton'
+import ExportMenu from '@/components/shared/ExportMenu'
+import { getReportsExport } from '@/lib/actions/export'
 import DashboardFilters from '@/components/admin/DashboardFilters'
 import ReportsExtraFilters from '@/components/admin/ReportsExtraFilters'
 import ReportsPagination from '@/components/admin/ReportsPagination'
@@ -85,10 +86,15 @@ export default async function ReportsPage({ searchParams }: Props) {
   return (
     <div className="space-y-5">
       <PageHeader title="Raporte" description="Analizë e seancave të mbyllura.">
-        <CSVExportButton
-          from={params.from}
-          to={params.to}
-          zoneCode={zoneCode || undefined}
+        <ExportMenu
+          fetchPayload={getReportsExport.bind(null, {
+            from: params.from,
+            to: params.to,
+            zone: params.zone,
+            employee: params.employee,
+            minDuration: params.minDuration,
+            sort: params.sort,
+          })}
         />
       </PageHeader>
 

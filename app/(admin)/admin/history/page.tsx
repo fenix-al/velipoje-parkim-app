@@ -1,7 +1,9 @@
 import { Metadata } from 'next'
 import { getRecentEvents } from '@/lib/db/queries'
+import { getHistoryExport } from '@/lib/actions/export'
 import ActivityTable from '@/components/admin/ActivityTable'
 import DashboardFilters from '@/components/admin/DashboardFilters'
+import ExportMenu from '@/components/shared/ExportMenu'
 import PageHeader from '@/components/shared/PageHeader'
 
 export const metadata: Metadata = {
@@ -38,7 +40,16 @@ export default async function HistoryPage({ searchParams }: Props) {
       <PageHeader
         title="Historiku i veprimeve"
         description="Të gjitha zëniet, lirimet dhe ndryshimet e statusit."
-      />
+      >
+        <ExportMenu
+          fetchPayload={getHistoryExport.bind(null, {
+            from: params.from,
+            to: params.to,
+            zone: params.zone,
+            event: params.event,
+          })}
+        />
+      </PageHeader>
       <DashboardFilters />
       <ActivityTable
         events={activity.events}

@@ -11,8 +11,9 @@ import {
 } from '@/lib/db/queries'
 import PageHeader from '@/components/shared/PageHeader'
 import { getProfile } from '@/lib/supabase/server'
+import { getDashboardExport } from '@/lib/actions/export'
 import DashboardFilters from '@/components/admin/DashboardFilters'
-import CSVExportButton from '@/components/admin/CSVExportButton'
+import ExportMenu from '@/components/shared/ExportMenu'
 import DashboardCharts from '@/components/admin/DashboardCharts'
 import DashboardInsightCards from '@/components/admin/DashboardInsightCards'
 import RecentActivityFeed from '@/components/admin/RecentActivityFeed'
@@ -95,10 +96,12 @@ export default async function DashboardPage({ searchParams }: Props) {
         title="Dashboard"
         description="Përmbledhje e përgjithshme e parkimit në kohë reale."
       >
-        <CSVExportButton
-          from={params.from}
-          to={params.to}
-          zoneCode={selectedZoneCode}
+        <ExportMenu
+          fetchPayload={getDashboardExport.bind(null, {
+            from: params.from,
+            to: params.to,
+            zone: selectedZoneCode,
+          })}
         />
       </PageHeader>
 
